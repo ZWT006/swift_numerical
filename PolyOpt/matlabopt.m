@@ -12,10 +12,13 @@
 % 1):[x] 倒数 Obstacle Cost 的 grad 计算
 % 2):[x] 利用求解等式约束使优化问题降维
 % 3):[x] 添加 Quadratic Programming 用于求解 Init Optimal Value
+% 8): Quadratic init value 的超限处理,根据max上限进行缩放
+% 9): 利用Equality Constrain使问题降维并去除该约束
 % 4): 编写Constrain/Cost验证函数
 % 5): 编写 NLopt 优化求解相关函数文件
 % 6): 与前面 LazyKinoPRM 的工作拼接 实现完整的工作流程
 % 7): OvalConstrain 的效果验证
+
 %***************************************
 % Segments Polynomial Trajectory Parameters
 addpath("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\LazyPRM\")
@@ -23,7 +26,8 @@ addpath("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\TrajGener\")
 % close all;
 clear;clc;
 
-map = imread('F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\map\map9.png');
+% map 加载地图与 LazyKinoPRM 中加载地图保持一致
+map = imread('F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\map\map0.png');
 load("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\path.mat");
 RATION = 100;
 path(:,1)=path(:,1)/RATION;
@@ -231,10 +235,10 @@ segpoly.d_th = 0.5; % 距离代价的阈值
 segpoly.lambda_smooth = 0.1;     % default 1
 segpoly.lambda_obstacle =1;%0.01; % default 0.01
 segpoly.lambda_dynamic = 1;%500;   % default 500
-segpoly.lambda_time = 6000;%3000;     % default 2000 
-segpoly.lambda_oval = 0;%10;       % default 10
+segpoly.lambda_time = 8000;%3000;     % default 2000 
+segpoly.lambda_oval = 1;%10;       % default 10
 % oval cost 和 oval constrain 选择一个起作用即可
-segpoly.switch_ovalcon = true;
+segpoly.switch_ovalcon = false;
 segpoly.switch_equacon = true;
 
 %##########################################################################
@@ -272,7 +276,7 @@ segpoly.TimeOptimal = TimeOptimal;
 
 %#########################################################################%
 % sdf 地图信息
-n = 4;
+n = 1;
 n=n+1;
 sdfmap = sdfMap(map);
 fp=figure(n);
@@ -341,7 +345,7 @@ switch OPT_SOLVER
 % reference：https://ww2.mathworks.cn/help/optim/ug/constrained-nonlinear-optimization-algorithms.html#brnpd5f
 options = optimoptions('fmincon','display', 'iter');
 options.Algorithm   = "interior-point";
-options.MaxFunctionEvaluations = 128000; % Default=3000
+options.MaxFunctionEvaluations = 256000; % Default=3000
 options.SpecifyObjectiveGradient = ObjectiveGradient; % 不用梯度算得慢死 甚至算不出来结果
 options.CheckGradients           = CheckGradients;
 options.EnableFeasibilityMode = true; % 内点法找不到满足约束的解,可笑把初始值搞成非0就行了

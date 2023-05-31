@@ -54,11 +54,11 @@ angle = @(x1,y1,x2,y2) atan2((y2-y1),(x2-x1));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 加载地图
-mapaddress = "map9.png";
-img = imread(mapaddress);        %空间地图
+mapaddress = "map0.png"; % 有多个可选地图位于/map 文件夹
+img = imread(mapaddress);   %空间地图
 img = rgb2gray(img);   %空间地图转换为灰度图
 % img = transpose(img); 
-initsdfmap = sdfMap(img);
+initsdfmap = sdfMap(img);   % 导入计算 sdf
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 设置图层
 fp = figure(n);
@@ -152,19 +152,18 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % obvp的参数
-Vel_factor = 2;
-W_factor   = 2;
-Racc       = 1;
+Vel_factor = 2; % x,y 参考线速度
+W_factor   = 2; % q 参考角速度
+Racc       = 1; % cost = x + y + Racc*q (SampleOBVP计算的代价权重)
 dt         = 0.01;
-RATIO      = 100;
+RATIO      = 100;   % 图片pixel 与真实距离 m 的比例 100 pixel = 1 m
 % 计算node的sdf代价的阈值
 dist_th    = 0.4;
 % 是否使用sdf代价选择node(使node与obstacles保持一定距离)
 SDF_COST   = true;
-THRESHOLD  = true;
-heur_factor = 1.2; % 1.2
-sdf_factor  = 1.5;
-c_angle = xy_grid/pi*0.8;
+heur_factor = 1.2; % 1.2  启发项的权重,影响搜索过程中对goal的趋近程度
+sdf_factor  = 1.5; % 计算 trajectory cost 时 sdf 的影响程度,具体作用方式见 getSDFcost
+c_angle = xy_grid/pi*0.8;   % 计算 trajectory cost 时 yaw 角的 cost 权重
 GoalNum = 1;
 
 plot(Point_i(1),Point_i(2),'o','Color','g','MarkerSize',8,'MarkerEdgeColor','k','MarkerFaceColor','g');
@@ -224,7 +223,6 @@ end % end i_temp
 if(ESTEND_FLAG)
     load('pose_map.mat');
 end
-
 
 % 将起点和终点根据坐标放入pose_map中
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -515,7 +513,8 @@ while(true)
 end % end A_star search loop
 
 fprintf("Having search %d times! \n",iter);
-%% Step4: Get Path
+%% Step4: Get Path 
+% 将角度变化处理得更加光滑
 path = [];
 path_index = [];
 path_sdf = [];
@@ -532,7 +531,8 @@ else
     final_index = GoalNodeList.parent_listidx(mingoalindex);
 
     path(n,:) = Point_f;
-    path_sdf(n,:) = [initsdfmap.getDistAndGrad(Point_f(1),Point_f(2)),0,0,0];
+    [temp_sdf,~,~] = initsdfmap.getDistAndGrad(Point_f(1),Point_f(2));
+    path_sdf(n,:) = [temp_sdf,0,0,0];
     while(final_index > 1)
         n = n +1;
         pose = openlist.node_pose(final_index,:);
@@ -541,7 +541,8 @@ else
         final_index = openlist.parent_listidx(final_index);
         %             fprintf('the %d final_index is : %d \n',n,final_index);
         path(n,:) =pose;
-        path_sdf(n,:) = [initsdfmap.getDistAndGrad(pose(1)/RATIO,pose(2)/RATIO),pose_index];
+        [temp_sdf,~,~] = initsdfmap.getDistAndGrad(Point_f(1),Point_f(2));
+        path_sdf(n,:) = [temp_sdf,pose_index];
     end
 end
 
@@ -564,7 +565,6 @@ path_index(n+1) = 1;
 [path_length,~]=size(path);
 
 path=flip(path);
-
 
 % angleset=zeros(path_length,1);
 % 
@@ -597,7 +597,6 @@ detl = 30;
 for idx=1:path_length
     plot([path(idx,1),path(idx,1)+cos(path(idx,3))*detl],[path(idx,2),path(idx,2)+sin(path(idx,3))*detl],'-','Color','k','LineWidth',2);
 end
-
 
 % [xt,yt,qt] = obvpsg.st();
 % figure(fp);
@@ -655,8 +654,6 @@ statev(1,:) = [0,0,0];
 %     plot([path(idx,1),path(idx,1)+cos(path(idx,3))*detl],[path(idx,2),path(idx,2)+sin(path(idx,3))*detl],'-','Color','b','LineWidth',1);
 % %     plot([path(idx,1),path(idx,1)+cos(angleset(idx))*detl],[path(idx,2),path(idx,2)+sin(angleset(idx))*detl],'-','Color','b','LineWidth',1);
 % end
-
-
 
 %%%%%%%%第一次启动速度不够,所以时间加倍
 % obvp=SampleOBVP(Vel_factor/2,W_factor/2,Racc,dt);
