@@ -1,0 +1,35 @@
+figure 1
+dist_th=0.8	heur_factor = 1; 	sdf_factor  = 1.2;	c_angle = xy_grid/pi*1;	SDF_COST=false
+iter = 174
+
+figure 2
+dist_th=0.8	heur_factor = 1.05; 	sdf_factor  = 1.2;	c_angle = xy_grid/pi*1;	SDF_COST=true	sdfcost = dist_factor*xy_cost*sdf_factor + distance_cost
+iter = 467
+
+figure 3
+dist_th=0.5	heur_factor = 1.05; 	sdf_factor  = 1.2;	c_angle = xy_grid/pi*1;	SDF_COST=true	sdfcost = dist_factor*xy_cost*sdf_factor + distance_cost
+iter = 223
+
+figure 4
+dist_th=0.5	heur_factor = 1.15; 	sdf_factor  = 1.5;	c_angle = xy_grid/pi*1;	SDF_COST=true	sdfcost = dist_factor*xy_cost*sdf_factor + distance_cost
+iter = 223
+
+figure 5
+dist_th=0.5	heur_factor = 1.15; 	sdf_factor  = 1.5;	c_angle = xy_grid/pi*1;	SDF_COST=true	sdfcost = dist_factor * distance_cost * sdf_factor + distance_cost
+iter = 227
+
+figure 6
+dist_th=0.5	heur_factor = 1.5; 	sdf_factor  = 3;	c_angle = xy_grid/pi*1;	SDF_COST=true	sdfcost = dist_factor * distance_cost * sdf_factor + distance_cost
+iter = 48
+
+figure 7
+dist_th=0.5	heur_factor = 1.05; 	sdf_factor  = 3;	c_angle = xy_grid/pi*1;	SDF_COST=true	sdfcost = dist_factor * distance_cost * sdf_factor + distance_cost
+iter = 268
+
+figure 8
+dist_th=1		heur_factor = 1.05; 	sdf_factor  = 3;	c_angle = xy_grid/pi*1;	SDF_COST=true	sdfcost = dist_factor * distance_cost * sdf_factor + distance_cost
+iter = 499
+
+figure 9
+dist_th=1		heur_factor = 1.05; 	sdf_factor  = 3;	c_angle = xy_grid/pi*1;	SDF_COST=true	sdfcost = dist_factor * distance_cost * sdf_factor + distance_cost
+iter = 268

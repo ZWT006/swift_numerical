@@ -1,0 +1,24 @@
+#########################
+#Vel_factor = 2;
+#W_factor   = 2;
+#DIR_GRID_M = 2;
+#c_angle = xy_grid/pi*0.8;
+print -depsc2 kinolazyPRM_0.eps
+#########################
+#Vel_factor = 2;
+#W_factor   = 1;
+#DIR_GRID_M = 2;
+#c_angle = xy_grid/pi*0.8;
+print -depsc2 kinolazyPRM_1.eps
+#########################
+#Vel_factor = 2;
+#W_factor   = 2;
+#DIR_GRID_M = 4;
+#c_angle = xy_grid/pi*0.8;
+print -depsc2 kinolazyPRM_2.eps
+#########################
+#Vel_factor = 2;
+#W_factor   = 2;
+#DIR_GRID_M = 2;
+#c_angle = xy_grid/pi*1.2;
+print -depsc2 kinolazyPRM_3.eps
