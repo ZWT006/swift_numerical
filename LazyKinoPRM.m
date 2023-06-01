@@ -23,20 +23,23 @@ clc;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % search debug flag
-SEARCH_DEBUG = 0;
+SEARCH_DEBUG = false;
 
 % 实时刷新图像
-PLOT_DEBUG = 0;
+PLOT_DEBUG = false;
 
 % 打印路径的状态信息,速度,加速度等
-OBVP_DEBUG = 0;
+OBVP_DEBUG = false;
 
 % 固定采样点,观察obvp效果
-ESTEND_FLAG = 0;
+ESTEND_FLAG = false;
 
 % 随机采样
-SAMPLE_RANDOM = 1;
+SAMPLE_RANDOM = true;
 
+% MAP erode
+MAP_ERODE = true;
+erode_range = 20; % pixel
 % figure sequence
 n = 1;
 
@@ -56,9 +59,13 @@ angle = @(x1,y1,x2,y2) atan2((y2-y1),(x2-x1));
 % 加载地图
 mapaddress = "map0.png"; % 有多个可选地图位于/map 文件夹
 img = imread(mapaddress);   %空间地图
-img = rgb2gray(img);   %空间地图转换为灰度图
+img = rgb2gray(img);   %空间地图转换为灰度图   
 % img = transpose(img); 
 initsdfmap = sdfMap(img);   % 导入计算 sdf
+if (MAP_ERODE)
+    se=strel('disk',erode_range);
+    img=imerode(img, se);
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 设置图层
 fp = figure(n);
@@ -152,8 +159,8 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % obvp的参数
-Vel_factor = 2; % x,y 参考线速度
-W_factor   = 2; % q 参考角速度
+Vel_factor = 1.4; % x,y 参考线速度
+W_factor   = 1.4; % q 参考角速度
 Racc       = 1; % cost = x + y + Racc*q (SampleOBVP计算的代价权重)
 dt         = 0.01;
 RATIO      = 100;   % 图片pixel 与真实距离 m 的比例 100 pixel = 1 m

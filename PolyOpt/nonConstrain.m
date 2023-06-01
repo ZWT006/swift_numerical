@@ -73,6 +73,7 @@ if (switch_ovalcon)
             acc_B = Rmatrix * acc_I'; % 载体系下的加速度
             vel_B2 = vel_B(1)^2/ORIEN_VEL^2+vel_B(2)^2/VERDIT_VEL^2;
             c(k,1) = vel_B2 - 1;
+            k=k+1;
         end
     end
 else
