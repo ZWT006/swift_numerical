@@ -1,7 +1,6 @@
 classdef PolyTraj
     %POLYTRAJ 多项式轨迹优化的类
     %   此处显示详细说明
-    
     properties
         n_seg; %piecen_segum
         Dim; % 优化变量的维度

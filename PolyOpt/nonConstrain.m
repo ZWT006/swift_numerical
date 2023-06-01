@@ -65,9 +65,9 @@ if (switch_ovalcon)
         ygrad = zeros(n_order,1);
         qgrad = zeros(n_order,1);
         for idj = 0:polytraj.bars(idi)
-            vel_I = vel(1:2); % 惯性系下的速度
-            acc_I = acc(1:2); % 惯性系下的加速度
-            yaw = pos(3);
+            vel_I = vel(idj+1,1:2); % 惯性系下的速度
+            acc_I = acc(idj+1,1:2); % 惯性系下的加速度
+            yaw = pos(idj+1,3);
             Rmatrix = [cos(yaw),sin(yaw);-sin(yaw),cos(yaw)];
             vel_B = Rmatrix * vel_I'; % 载体系下的速度
             acc_B = Rmatrix * acc_I'; % 载体系下的加速度

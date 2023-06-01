@@ -23,7 +23,7 @@
 % Segments Polynomial Trajectory Parameters
 addpath("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\LazyPRM\")
 addpath("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\TrajGener\")
-% close all;
+close all;
 clear;clc;
 
 % map 加载地图与 LazyKinoPRM 中加载地图保持一致
@@ -207,13 +207,16 @@ segpoly.VERDIT_VEL = 1;
 segpoly.DEBUG_PRINT = true;
 segpoly.DEBUG_PLOT  = true;
 segpoly.TIME_PRINT  = false;
+segpoly.CHECK_PLOT  = false;
 %%%%%%%%%%%%% GLOBAL DEFINE
 MATLAB_SOLVER = 1;
 NLOPT_SOLVER  = 2;
 OPT_SOLVER = MATLAB_SOLVER;
-PLOT_DEBUG = true;
+PLOT_DEBUG = false;
 QP_PLOT    = true;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 优化参数
+n = 0;  % 打印figure开始序号
 n_order = 8; % 7阶多项式
 n_cost  = 4;
 n_input = 4;
@@ -233,12 +236,12 @@ segpoly.dt = 0.05; % 时间分辨率
 segpoly.d_th = 0.5; % 距离代价的阈值
 % 几种cost的权重
 segpoly.lambda_smooth = 0.1;     % default 1
-segpoly.lambda_obstacle =1;%0.01; % default 0.01
+segpoly.lambda_obstacle =10;%0.01; % default 0.01
 segpoly.lambda_dynamic = 1;%500;   % default 500
 segpoly.lambda_time = 8000;%3000;     % default 2000 
-segpoly.lambda_oval = 1;%10;       % default 10
+segpoly.lambda_oval = 0;%10;       % default 10
 % oval cost 和 oval constrain 选择一个起作用即可
-segpoly.switch_ovalcon = false;
+segpoly.switch_ovalcon = true;
 segpoly.switch_equacon = true;
 
 %##########################################################################
@@ -276,7 +279,7 @@ segpoly.TimeOptimal = TimeOptimal;
 
 %#########################################################################%
 % sdf 地图信息
-n = 1;
+
 n=n+1;
 sdfmap = sdfMap(map);
 fp=figure(n);
