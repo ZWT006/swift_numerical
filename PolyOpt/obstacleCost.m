@@ -11,14 +11,25 @@ n_order = segpoly.norder;
 
 %##########################################################################
 TimeOptimal = segpoly.TimeOptimal;
+% 等式约束降维选项
+ReduceOptimalValue = segpoly.ReduceOptimalValue;
+
 if (TimeOptimal)
     ts = coeffs(end-n_seg + 1:end); % 最后的n_seg个变量是tau
     coeffs(end-n_seg + 1:end)=[];
-    polytraj = segpoly.traj.setCoeffs(coeffs);
-    polytraj = polytraj.settauarray(ts);
+    ts = exp(ts);
 else
-    polytraj = segpoly.traj.setCoeffs(coeffs);
+    ts = segpoly.T;
 end
+
+if (ReduceOptimalValue)
+    segpoly.T = ts;
+    coeffs = segpoly.traj.SolveCoeffs(coeffs,segpoly);
+end
+
+polytraj = segpoly.traj.setCoeffs(coeffs);
+% 此时的ts已经是变换后的时间了
+polytraj = polytraj.setTarray(ts);
 
 cost = 0;
 grad = zeros(segpoly.coeffl,1);
@@ -69,6 +80,9 @@ for idi = 1:n_seg
     grad(((idi-1)*dim+1)*n_order + 1:((idi-1)*dim+2)*n_order) = ygrad;
     % gradt 直接置零
     gradt(idi) = xgradt + ygradt;
+end
+if(ReduceOptimalValue)
+    grad = segpoly.traj.getReduceOptVelue(grad);
 end
 if(TimeOptimal)
     grad = [grad;gradt];

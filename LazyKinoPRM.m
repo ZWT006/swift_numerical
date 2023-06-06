@@ -132,7 +132,7 @@ if (mapaddress == "map4.png" || mapaddress == "map5.png" || ...
     xy_resolution = 20;    %随机采样的xy分辨率
     aix_resolution = 1;    %yaw角采样分辨率
     YAW_BIAS = pi;       % yaw角拓展的最大偏差
-    DIR_GRID_M = 2;          % 节点拓展的分辨率
+    DIR_GRID_M = 3;          % 节点拓展的分辨率
 elseif (mapaddress == "map6.png")
     Point_i=[50,50,deg2rad(45)];
 %     Point_f=[907,582,deg2rad(-45)];
@@ -166,9 +166,12 @@ dt         = 0.01;
 RATIO      = 100;   % 图片pixel 与真实距离 m 的比例 100 pixel = 1 m
 % 计算node的sdf代价的阈值
 dist_th    = 0.4;
+heur_factor = 1.2;
 % 是否使用sdf代价选择node(使node与obstacles保持一定距离)
-SDF_COST   = true;
-heur_factor = 1.2; % 1.2  启发项的权重,影响搜索过程中对goal的趋近程度
+SDF_COST   = false;
+if (~SDF_COST)
+heur_factor = 1; % 1.2  启发项的权重,影响搜索过程中对goal的趋近程度
+end
 sdf_factor  = 1.5; % 计算 trajectory cost 时 sdf 的影响程度,具体作用方式见 getSDFcost
 c_angle = xy_grid/pi*0.8;   % 计算 trajectory cost 时 yaw 角的 cost 权重
 GoalNum = 1;

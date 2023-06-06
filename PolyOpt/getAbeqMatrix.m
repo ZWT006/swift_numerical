@@ -1,6 +1,7 @@
 function [Aeq, beq] = getAbeqMatrix(coeffs,segpoly)
 % Minimun Snap Trajectory Generation P35 L5.pdf
 % 注意 Aeq_start;Aeq_end;Aeq_wp;Aeq_con 的列数相同为总优化变量个数n_seg*(n_order+1)
+% 调整稀疏矩阵 Aeq 的非零元素位置 提高 Ax=b的求解速率
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % 参数设置
     n_seg = segpoly.seg;
@@ -34,39 +35,63 @@ function [Aeq, beq] = getAbeqMatrix(coeffs,segpoly)
         vector =  end_cond(:,i);
         beq_end(1+(i-1)*n_inputorder:i*n_inputorder) =  vector;
     end
+%     %#####################################################
+%     % 中点的位置约束
+%     Aeq_wp = zeros((n_seg-1)*n_dim, n_all_poly);
+%     beq_wp = zeros((n_seg-1)*n_dim, 1);
+%     
+%     for k = 0:1:n_seg-2
+%         coeff = getCoeffCons(ts(k+1),n_order,1); % 中间点只固定 pose
+%         for i = 1:n_dim
+%             beq_wp(k*n_dim+i, 1) = waypoints(k+2,i);
+%             % 1:t:t^2:t^3:t^4…… * [p0 p1 p2 p3……]T
+%             Aeq_wp(k*n_dim+i, 1+(k*n_dim+i-1)*coeff_n:(k*n_dim + i)*coeff_n) = coeff(1, :);  
+%         end
+%     end
+
     %#####################################################
-    % 中点的位置约束
-    Aeq_wp = zeros((n_seg-1)*n_dim, n_all_poly);
-    beq_wp = zeros((n_seg-1)*n_dim, 1);
+    % 中点的位置约束 与 连续性约束
+    row = n_inputorder*(n_seg-1)*n_dim + (n_seg-1)*n_dim;
+    col = n_all_poly;
+    Aeq_wp = zeros(row,col);
+    beq_wp = zeros(row,1);
     
     for k = 0:1:n_seg-2
         coeff = getCoeffCons(ts(k+1),n_order,1); % 中间点只固定 pose
-        for i = 1:n_dim
-            beq_wp(k*n_dim+i, 1) = waypoints(k+2,i);
-            % 1:t:t^2:t^3:t^4…… * [p0 p1 p2 p3……]T
-            Aeq_wp(k*n_dim+i, 1+(k*n_dim+i-1)*coeff_n:(k*n_dim + i)*coeff_n) = coeff(1, :);  
-        end
-    end
-    
-    %#####################################################
-    % 连续性约束
-    row = n_inputorder*(n_seg-1)*n_dim;
-    col = n_all_poly;
-    Aeq_con = zeros(row,col);
-    beq_con = zeros(row,1);
-    
-    for k = 0:1:n_seg-2 
         Mpositive = getCoeffCons(ts(k+1),n_order,n_inputorder);
         Mnegative = -getCoeffCons(0,n_order,n_inputorder);
         for i = 0:n_dim-1
-            Aeq_con(1+n_inputorder*(k*n_dim+i):n_inputorder*(k*n_dim+i+1),1+coeff_n*(k*n_dim+i):coeff_n*(k*n_dim+i+1)) = Mpositive;
-            Aeq_con(1+n_inputorder*(k*n_dim+i):n_inputorder*(k*n_dim+i+1),1+coeff_n*((k+1)*n_dim+i):coeff_n*((k+1)*n_dim+i+1)) = Mnegative;
+            beq_wp(1+(n_inputorder+1)*(k*n_dim+i), 1) = waypoints(k+2,i+1);
+            % 1:t:t^2:t^3:t^4…… * [p0 p1 p2 p3……]T
+            % waypoint pos
+            Aeq_wp(1+(n_inputorder+1)*(k*n_dim+i), 1+(k*n_dim+i)*coeff_n:(k*n_dim + i+1)*coeff_n) = coeff(1, :);  
+            % waypoints p,v,a,j 连续性
+            Aeq_wp(2+(n_inputorder+1)*(k*n_dim+i):(n_inputorder+1)*(k*n_dim+i+1),1+coeff_n*(k*n_dim+i):coeff_n*(k*n_dim+i+1)) = Mpositive;
+            Aeq_wp(2+(n_inputorder+1)*(k*n_dim+i):(n_inputorder+1)*(k*n_dim+i+1),1+coeff_n*((k+1)*n_dim+i):coeff_n*((k+1)*n_dim+i+1)) = Mnegative;
         end
     end
     
+%     %#####################################################
+%     % 连续性约束
+%     row = n_inputorder*(n_seg-1)*n_dim;
+%     col = n_all_poly;
+%     Aeq_con = zeros(row,col);
+%     beq_con = zeros(row,1);
+%     
+%     for k = 0:1:n_seg-2 
+%         Mpositive = getCoeffCons(ts(k+1),n_order,n_inputorder);
+%         Mnegative = -getCoeffCons(0,n_order,n_inputorder);
+%         for i = 0:n_dim-1
+%             Aeq_con(1+n_inputorder*(k*n_dim+i):n_inputorder*(k*n_dim+i+1),1+coeff_n*(k*n_dim+i):coeff_n*(k*n_dim+i+1)) = Mpositive;
+%             Aeq_con(1+n_inputorder*(k*n_dim+i):n_inputorder*(k*n_dim+i+1),1+coeff_n*((k+1)*n_dim+i):coeff_n*((k+1)*n_dim+i+1)) = Mnegative;
+%         end
+%     end
+    
     %#####################################################
     % 构造约束矩阵
-    Aeq = [Aeq_start; Aeq_end; Aeq_wp; Aeq_con];
-    beq = [beq_start; beq_end; beq_wp; beq_con];
+%     Aeq = [Aeq_start; Aeq_end; Aeq_wp; Aeq_con];
+%     beq = [beq_start; beq_end; beq_wp; beq_con];
+    Aeq = [Aeq_start; Aeq_wp; Aeq_end];
+    beq = [beq_start; beq_wp; beq_end];
 end
 

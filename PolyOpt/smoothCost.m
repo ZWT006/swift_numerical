@@ -26,6 +26,9 @@ n_dim   = segpoly.Dim;
 % 时间最优选项
 TimeOptimal = segpoly.TimeOptimal;
 
+% 等式约束降维选项
+ReduceOptimalValue = segpoly.ReduceOptimalValue;
+
 if (TimeOptimal)
     ts = coeffs(end-n_seg + 1:end); % 最优的n_seg个变量是tau
     coeffs(end-n_seg + 1:end) = [];
@@ -35,8 +38,14 @@ else
 end
 % disp("Iter ts datas:");
 % disp(ts');
+
+if (ReduceOptimalValue)
+    segpoly.T = ts;
+    coeffs = segpoly.traj.SolveCoeffs(coeffs,segpoly);
+end
+
 cost = 0;
-grad = zeros(1,n_order*n_dim);
+grad = zeros(1,n_order*n_dim*n_seg);
 gradt = zeros(1,n_seg);
 for j = 1: n_seg
     % 取出 nodr长度的系数
@@ -72,8 +81,11 @@ end
 %     gradt(j) = (xgradt + ygradt + segpoly.R * qgradt)*ts(j); % 对数的导数还是自身
 % end
 
+if(ReduceOptimalValue)
+    grad = segpoly.traj.getReduceOptVelue(grad);
+end
 if(TimeOptimal)
-grad = [grad,gradt];
+    grad = [grad,gradt];
 end
 grad=grad';
 end

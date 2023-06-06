@@ -27,6 +27,7 @@ classdef PolyTraj
         dotl; % 离散点的总个数
         bardt; % 每段seg的bars的dt
         coeffl; % 系数变量的个数
+        dof; % 优化问题系数自由度
     end
     methods
         %% 功能函数区 init set 
@@ -47,6 +48,7 @@ classdef PolyTraj
             obj.dotl = sum(obj.bars) + obj.n_seg;
             obj.coeffl = segpoly.coeffl;
             obj.d_th = segpoly.d_th;
+            obj.dof  = segpoly.dof;
         end
         function obj = setCoeffs(obj,coeffs)
             % 设置[x,y,q]的系数
@@ -202,7 +204,93 @@ classdef PolyTraj
             end
 %             fprintf("getPos inputs = %d\n",nargin);
         end
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function coeffs = SolveCoeffs(obj,x,segpoly)
+            [xl,~] = size(x);
+            [Aeq, beq] = getAbeqMatrix([],segpoly);
+            dof_num = 0;
+            for id_seg=0:segpoly.seg-1
+                if (dof_num >= segpoly.dof)
+                    break;
+                end
+                for id_order=segpoly.ninput+2:segpoly.norder
+                    if (dof_num >= segpoly.dof)
+                        break;
+                    end
+                    for id_dim = 0:segpoly.Dim-1
+                        row_I = zeros(1,obj.coeffl); % row 向量
+                        % 当前优化变量的行序号
+                        row_num = id_seg*segpoly.Dim*segpoly.norder + id_dim*segpoly.norder + id_order;
+                        row_I(row_num) = 1;
+                        dof_num = dof_num + 1;
+                        Aeq = insertRow(Aeq,row_I,row_num);
+                        beq = insertRow(beq,x(dof_num),row_num);
+                        if (dof_num >= segpoly.dof)
+                            break;
+                        end
+                    end
+                end
+            end
+%             coeffs = linsolve(Aeq,beq);
+            coeffs = pinv(Aeq)*beq;
+        end
+        function [Aeq,beq] = SolveAeqbeq(obj,x,segpoly)
+            [Aeq, beq] = getAbeqMatrix([],segpoly);
+            dof_num = 0;
+            for id_seg=0:segpoly.seg-1 
+                if (dof_num >= segpoly.dof)
+                    break;
+                end % 5~8 阶次系数
+                for id_order=segpoly.ninput+2:segpoly.norder
+                    if (dof_num >= segpoly.dof)
+                        break;
+                    end
+                    for id_dim = 0:segpoly.Dim-1
+                        row_I = zeros(1,obj.coeffl); % row 向量
+                        % 当前优化变量的行序号
+                        row_num = id_seg*segpoly.Dim*segpoly.norder + id_dim*segpoly.norder + id_order;
+                        row_I(row_num) = 1;
+                        dof_num = dof_num + 1;
+                        Aeq = insertRow(Aeq,row_I,row_num);
+                        beq = insertRow(beq,x(dof_num),row_num);
+                        if (dof_num >= segpoly.dof)
+                            break;
+                        end
+                    end
+                end
+            end
+        end
+        function re_OptVelue = getReduceOptVelue(obj,OptVelue)
+%             grad(obj.dof+1:end) = [];
+            dof_num = 0;
+            [row,col]=size(OptVelue);
+            if (row > 1)
+                row = obj.dof;
+            end
+            if (col > 1)
+                col = obj.dof;
+            end
+            re_OptVelue = zeros(row,col);
+            for id_seg=0:obj.n_seg-1 
+                if (dof_num >= obj.dof)
+                    break;
+                end % 5~8 阶次系数
+                for id_order=obj.ninput+2:obj.nodr
+                    if (dof_num >= obj.dof)
+                        break;
+                    end
+                    for id_dim = 0:obj.Dim-1
+                        % 当前优化变量的行序号
+                        row_num = id_seg*obj.Dim*obj.nodr + id_dim*obj.nodr + id_order;
+                        dof_num = dof_num + 1;
+                        re_OptVelue(dof_num) = OptVelue(row_num);
+                        if (dof_num >= obj.dof)
+                            break;
+                        end
+                    end
+                end
+            end
+        end
     end
 end
 
@@ -320,22 +408,27 @@ function state = getstatexyq(xc,yc,qc,t)
 % TODO: 这里是固定了阶次,之后可以优化代码
 tl = length(t);
 state(3,3,tl) = 0;
-for i=1:tl
-    M = getCoeffCons(t(i),8,3);
-    xstate = M*xc;
-    ystate = M*yc;
-    qstate = M*qc;
-    state(:,:,i)=[xstate,ystate,qstate];
-end
+    for i=1:tl
+        M = getCoeffCons(t(i),8,3);
+        xstate = M*xc;
+        ystate = M*yc;
+        qstate = M*qc;
+        state(:,:,i)=[xstate,ystate,qstate];
+    end
 end
 function state = getJerk(xc,yc,qc,t)
 tl = length(t);
 state(tl,3) = 0;
-for i=1:tl
-    M = getCoeffCons(t(i),8,4);
-    xstate = M*xc;
-    ystate = M*yc;
-    qstate = M*qc;
-    state(tl,:)=[xstate(4),ystate(4),qstate(4)];
+    for i=1:tl
+        M = getCoeffCons(t(i),8,4);
+        xstate = M*xc;
+        ystate = M*yc;
+        qstate = M*qc;
+        state(tl,:)=[xstate(4),ystate(4),qstate(4)];
+    end
 end
+%% 针对矩阵进行操作 插入行
+function Matrix = insertRow(Matrix,row,idx)
+    % insert row = idx
+    Matrix =  [Matrix(1:(idx-1),:);row;Matrix(idx:end,:)];
 end

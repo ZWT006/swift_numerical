@@ -7,6 +7,11 @@ cost = 0;
 grad = zeros(segpoly.coeffl,1);
 gradt = zeros(n_seg,1);
 
+% 等式约束降维选项
+ReduceOptimalValue = segpoly.ReduceOptimalValue;
+if(ReduceOptimalValue)
+    grad = segpoly.traj.getReduceOptVelue(grad);
+end
 %##########################################################################
 TimeOptimal = segpoly.TimeOptimal;
 if (TimeOptimal)

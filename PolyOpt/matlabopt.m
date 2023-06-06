@@ -13,11 +13,18 @@
 % 2):[x] 利用求解等式约束使优化问题降维
 % 3):[x] 添加 Quadratic Programming 用于求解 Init Optimal Value
 % 8): Quadratic init value 的超限处理,根据max上限进行缩放
-% 9): 利用Equality Constrain使问题降维并去除该约束
-% 4): 编写Constrain/Cost验证函数
+% 9):[x] 利用Equality Constrain使问题降维并去除该约束
+% 4):[x] 编写Constrain/Cost验证函数
 % 5): 编写 NLopt 优化求解相关函数文件
-% 6): 与前面 LazyKinoPRM 的工作拼接 实现完整的工作流程
+% 6):[x] 与前面 LazyKinoPRM 的工作拼接 实现完整的工作流程
 % 7): OvalConstrain 的效果验证
+% SPEED UP：哪些点可以加速优化求解
+% 1): 
+% 2): 
+% 1): 
+% 2): 
+% 1): 
+% 2):
 
 %***************************************
 % Segments Polynomial Trajectory Parameters
@@ -88,10 +95,14 @@ n_order       = 7;          % 多项式的阶数 自由度为 n_order+1
 n_costorder   = 4;          % 最小化的求导阶次 0=posi;1=vel;2=acc;3=jerk;4=snap;
 n_inputorder  = 4;          % 输入的阶次 可以理解为segment 之间满足等式约束的阶次
 
+% Time Clock ###########
+tQPStart = tic;
 poly_coef_x = MinimumPolySolver(path(:, 1), ts, n_seg, n_order, n_costorder, n_inputorder);
 poly_coef_y = MinimumPolySolver(path(:, 2), ts, n_seg, n_order, n_costorder, n_inputorder);
 poly_coef_q = MinimumPolySolver(path(:, 3), ts, n_seg, n_order, n_costorder, n_inputorder);
 
+% Time Clock ###########
+tQPEnd = toc(tQPStart);
 %##########################################################################
 pathstates = zeros(3,n_inputorder,n_seg+1);
 pathstates(:,:,1) = [path(1,1),0,0,0;path(1,2),0,0,0;path(1,3),0,0,0];
@@ -189,18 +200,19 @@ T=sum(ts);
 dist = dist(seq_start:seq_end-1);
 start_cond = squeeze(pathstates(:,:,seq_start))';
 goal_cond  = squeeze(pathstates(:,:,seq_end))';
-poly_coef_x = poly_coef_x((seq_start-1)*(n_order+1)+1:(seq_end-1)*(n_order+1));
-poly_coef_y = poly_coef_y((seq_start-1)*(n_order+1)+1:(seq_end-1)*(n_order+1));
-poly_coef_q = poly_coef_q((seq_start-1)*(n_order+1)+1:(seq_end-1)*(n_order+1));
+poly_coef_x_seg = poly_coef_x((seq_start-1)*(n_order+1)+1:(seq_end-1)*(n_order+1));
+poly_coef_y_seg = poly_coef_y((seq_start-1)*(n_order+1)+1:(seq_end-1)*(n_order+1));
+poly_coef_q_seg = poly_coef_q((seq_start-1)*(n_order+1)+1:(seq_end-1)*(n_order+1));
 
-
+bound_rate = 0.8;
+oval_rate  = 0.8;
 segpoly.pv_max = pv_max;
 segpoly.pa_max = pa_max;
 segpoly.wv_max = wv_max;
 segpoly.wa_max = wa_max;
-segpoly.dyna_rate = 0.8;
+segpoly.dyna_rate = bound_rate;
 
-segpoly.oval_rate = 0.8;
+segpoly.oval_rate = oval_rate;
 segpoly.ORIEN_VEL = 2;
 segpoly.VERDIT_VEL = 1;
 %##########################################################################
@@ -215,6 +227,7 @@ OPT_SOLVER = MATLAB_SOLVER;
 PLOT_DEBUG = true;
 QP_PLOT    = true;
 FEASIBLE_CHECK = true;
+OPT_CLOCK  = true;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 优化参数
 n = 1;  % 打印figure开始序号
@@ -225,6 +238,9 @@ n_order = 8; % 7阶多项式
 n_cost  = 4;
 n_input = 4;
 n_dim   = 3;
+% opt 问题的自由度 整个自由度 减去 等式约束 (waypoints连续性约束+waypoints固定点约束)
+% opt value = seg * dimension * order - n_dim*(n_seg + 1)*n_input
+opt_dof = n_dim*n_seg*n_order - 2*n_input*n_dim - n_input*(n_seg-1)*n_dim - (n_seg-1)*n_dim;
 % 二次优化初始点
 subOptValuesInit = true;
 % 时间最优选项
@@ -235,18 +251,24 @@ ObjectiveGradient = true;
 ConstantBounds    = true;
 % 梯度检查选项 正常求解关闭
 CheckGradients    = false;
+% ReduceDOF
+ReduceOptimalValue = true;
+% constant threshold
 segpoly.ds = 0.05; % 距离分辨率
 segpoly.dt = 0.05; % 时间分辨率
 segpoly.d_th = 0.5; % 距离代价的阈值
 % 几种cost的权重
-segpoly.lambda_smooth = 0.1;     % default 1
-segpoly.lambda_obstacle =1;%0.01; % default 0.01
-segpoly.lambda_dynamic = 1;%500;   % default 500
-segpoly.lambda_time = 8000;%3000;     % default 2000 
-segpoly.lambda_oval = 10;%10;       % default 10
+segpoly.lambda_smooth = 0.1;     % default 1    0.1
+segpoly.lambda_obstacle =1;%0.01; % default 0.01    1
+segpoly.lambda_dynamic = 10;%500;   % default 500    1
+segpoly.lambda_time = 8000;%3000;     % default 2000    8000
+segpoly.lambda_oval = 0;%10;       % default 10
 % oval cost 和 oval constrain 选择一个起作用即可
-segpoly.switch_ovalcon = false;
+segpoly.switch_ovalcon = true;
+% Nonlinear equality Constrain
 segpoly.switch_equacon = true;
+% Using Equality Constrain Reduce Optimization DOF 
+segpoly.ReduceOptimalValue  = ReduceOptimalValue;
 
 %##########################################################################
 %可行参数
@@ -260,6 +282,7 @@ segpoly.ncost   = n_cost;
 segpoly.seg     = n_seg; %pieceNum
 segpoly.Dim     = n_dim; % 优化变量的维度
 segpoly.coeffl  = n_seg * n_order * n_dim;
+segpoly.dof     = opt_dof;
 segpoly.ninput  = n_input; % 输入的阶次 默认与ncost一致 zeros(1,3)
 segpoly.start_cond  = start_cond;
 segpoly.goal_cond   = goal_cond;
@@ -306,24 +329,29 @@ end
 x0 = ones(segpoly.coeffl,1)*2; % 起始迭代点
 if (subOptValuesInit)
     for i = 0:n_seg-1
-        x0(1+n_order*(i*n_dim):n_order*(i*n_dim+1))   =  poly_coef_x(1+n_order*i:n_order*(i+1));
-        x0(1+n_order*(i*n_dim+1):n_order*(i*n_dim+2)) =  poly_coef_y(1+n_order*i:n_order*(i+1));
-        x0(1+n_order*(i*n_dim+2):n_order*(i*n_dim+3)) =  poly_coef_q(1+n_order*i:n_order*(i+1));
+        x0(1+n_order*(i*n_dim):n_order*(i*n_dim+1))   =  poly_coef_x_seg(1+n_order*i:n_order*(i+1));
+        x0(1+n_order*(i*n_dim+1):n_order*(i*n_dim+2)) =  poly_coef_y_seg(1+n_order*i:n_order*(i+1));
+        x0(1+n_order*(i*n_dim+2):n_order*(i*n_dim+3)) =  poly_coef_q_seg(1+n_order*i:n_order*(i+1));
     end
 end
 % 将 quadprog 的coeffs放入segpoly
 segpoly.coeffs = x0;
-
 lowb = ones(segpoly.coeffl,1)*-500;
 upb = ones(segpoly.coeffl,1)*500;
 
+% 使用等式约束降维优化问题
+if (ReduceOptimalValue)
+    x0   = polytraj.getReduceOptVelue(x0);
+    lowb = polytraj.getReduceOptVelue(lowb);
+    upb  = polytraj.getReduceOptVelue(upb);
+end
+
+
 if (TimeOptimal)
-    [Aeq, beq] = getAbeqMatrix([],segpoly);
-    bas = Aeq*x0 - beq;
+%     [Aeq, beq] = getAbeqMatrix([],segpoly);
+    bas = Aeq*segpoly.coeffs - beq;
     basum = sum(bas.^2);
-    
     fprintf("Aeq bais sum = %d\n",basum);
-    
     if (subOptValuesInit)
         t0 = log(ts);
     else
@@ -338,6 +366,9 @@ if (TimeOptimal)
     upb  = [upb ;ones(n_seg,1)*1.6];
 end
 
+
+% [Re_Aeq,Re_beq] = polytraj.SolveAeqbeq(x0,segpoly);
+%% 求解优化问题
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 switch OPT_SOLVER
 
@@ -363,6 +394,7 @@ options.ConstraintTolerance = 1e-5;
 problem.options = options;
 problem.solver = 'fmincon';
 problem.objective = @(x)CostFunc(x,segpoly); %匿名函数可以使用额外参数
+opt_num = length(x0);
 problem.x0 = x0; % 起始迭代点
 if (ConstantBounds)
     problem.lb = lowb;
@@ -384,7 +416,9 @@ else
     end
 end
 % x = fmincon(fun,x0,A,b,Aeq,beq,lb,ub,nonlcon,options)
+tfminconStart = tic;
 [coeffs, fval, exitflag, output]=fmincon(problem);
+tfminconEnd = toc(tfminconStart);
 
     case NLOPT_SOLVER % NLopt 非线性优化
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -400,14 +434,15 @@ nintlength = ones(segpoly.coeffl,1);
 % opt.fc_tol = 1e-8;
 
 % h 是等式约束
-opt.h = {@(x) equialConstrain(x,segpoly)}; %匿名函数可以使用额外参数
-opt.h_tol = 1e-8;
+% opt.h = {@(x) equialConstrain(x,segpoly)}; %匿名函数可以使用额外参数
+% opt.h_tol = 1e-8;
 
 
 opt.xtol_rel = (1e-4);
 [xopt, fmin, retcode] = nlopt_optimize(opt, x0);
 
 end
+
 
 [obsCost,obsgrad]=obstacleCost(coeffs,segpoly);
 [smoCost,smograd]=smoothCost(coeffs,segpoly);
@@ -423,9 +458,8 @@ lovaCost = segpoly.lambda_oval     * ovaCost;
 
 fprintf("smoCost = %8.4f; obsCost = %8.4f; dynCost = %8.4f; ovaCost = %8.4f; timCost = %8.6f \n",lsmoCost,lobsCost,ldynCost,lovaCost,ltimCost);
 
-% polytraj.showSegState();
-
 if (TimeOptimal)
+    fprintf("############################# TIME CHECK ################################\n")
     disp(ts');
     ts = coeffs(end-n_seg+1:end);
     ts = exp(ts);
@@ -436,16 +470,30 @@ if (TimeOptimal)
     fprintf("Opt T =%3.4f\n",T);
 end
 
+% polytraj.showSegState();
+if (ReduceOptimalValue)
+    segpoly.T = ts;
+    coeffs = segpoly.traj.SolveCoeffs(coeffs,segpoly);
+end
+%% 
 % feasibleCheck ###########################################################
 % 注意调用该函数的顺序,只使用 segpoly 结构体进行 check
 segpoly.T = ts;
 segpoly.coeffs = coeffs;
 if (FEASIBLE_CHECK)
+    fprintf("############################# FEASIBLE CHECK ################################\n")
     [Aeq, beq] = getAbeqMatrix([],segpoly);
     bas = Aeq*coeffs - beq;
     basum = sum(bas.^2);
     fprintf("Aeq bais sum = %d\n",basum);
     checkstatue = feasibleCheck(coeffs,ts,segpoly);
+end
+
+if (OPT_CLOCK)
+    fprintf("############################# TIME CHECK ################################\n")
+    fprintf("Segments = %2d, Optimal Values = %4d \n",n_seg,opt_num);
+    fprintf("Quadratic Optimization Clock = %4.6f \n",tQPEnd);
+    fprintf("fmincon   Optimization Clock = %4.6f \n",tfminconEnd);
 end
 
 % polynomial trajectory 多项式轨迹
@@ -595,8 +643,10 @@ grid on
 xlim([0 ceil(T)]);
 % ylim([-150 250]);
 ylim([floor(min(Y_dn))-2 ceil(max(Y_dn))+2]);
-line([0,ceil(T)],[pv_max,pv_max],'linestyle','--','color','c','LineWidth',2);
-line([0,ceil(T)],[-pv_max,-pv_max],'linestyle','--','color','c','LineWidth',2);
+line([0,ceil(T)],[pv_max,pv_max],'linestyle','-','color','k','LineWidth',2);
+line([0,ceil(T)],[-pv_max,-pv_max],'linestyle','-','color','k','LineWidth',2);
+line([0,ceil(T)],[pv_max*bound_rate,pv_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
+line([0,ceil(T)],[-pv_max*bound_rate,-pv_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
 hold off
 set(gcf,'Position', [100, 100, 1300, 700]);
 
@@ -635,8 +685,10 @@ end
 grid on
 xlim([0 ceil(T)]);
 ylim([floor(min(Q_dn)) ceil(max(Q_dn))]);
-line([0,ceil(T)],[wv_max,wv_max],'linestyle','--','color','c','LineWidth',2);
-line([0,ceil(T)],[-wv_max,-wv_max],'linestyle','--','color','c','LineWidth',2);
+line([0,ceil(T)],[wv_max,wv_max],'linestyle','-','color','k','LineWidth',2);
+line([0,ceil(T)],[-wv_max,-wv_max],'linestyle','-','color','k','LineWidth',2);
+line([0,ceil(T)],[wv_max*bound_rate,wv_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
+line([0,ceil(T)],[-wv_max*bound_rate,-wv_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
 hold off
 set(gcf,'Position', [100, 100, 1300, 700]);
 
@@ -707,8 +759,10 @@ end
 grid on
 xlim([0 ceil(T)]);
 ylim([floor(min(Y_ddn))-2 ceil(max(Y_ddn))+2]);
-line([0,ceil(T)],[pa_max,pa_max],'linestyle','--','color','c','LineWidth',2);
-line([0,ceil(T)],[-pa_max,-pa_max],'linestyle','--','color','c','LineWidth',2);
+line([0,ceil(T)],[pa_max,pa_max],'linestyle','-','color','k','LineWidth',2);
+line([0,ceil(T)],[-pa_max,-pa_max],'linestyle','-','color','k','LineWidth',2);
+line([0,ceil(T)],[pa_max*bound_rate,pa_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
+line([0,ceil(T)],[-pa_max*bound_rate,-pa_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
 hold off
 set(gcf,'Position', [100, 100, 1300, 700]);
 
@@ -747,8 +801,10 @@ end
 grid on
 xlim([0 ceil(T)]);
 ylim([floor(min(Q_ddn)) ceil(max(Q_ddn))]);
-line([0,ceil(T)],[wa_max,wa_max],'linestyle','--','color','c','LineWidth',2);
-line([0,ceil(T)],[-wa_max,-wa_max],'linestyle','--','color','c','LineWidth',2);
+line([0,ceil(T)],[wa_max,wa_max],'linestyle','-','color','k','LineWidth',2);
+line([0,ceil(T)],[-wa_max,-wa_max],'linestyle','-','color','k','LineWidth',2);
+line([0,ceil(T)],[wa_max*bound_rate,wa_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
+line([0,ceil(T)],[-wa_max*bound_rate,-wa_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
 hold off
 set(gcf,'Position', [100, 100, 1300, 700]);
 end %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOT_DEBUG

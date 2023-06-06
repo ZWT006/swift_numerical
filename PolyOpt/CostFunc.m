@@ -48,6 +48,9 @@ end
 % cost = lambda_smooth*smoCost + lambda_obstacle*obsCost;
 % grad = lambda_smooth*smograd + lambda_obstacle*obsgrad;
 
+% cost = lambda_smooth*smoCost + lambda_time*timCost + lambda_oval*ovaCost;
+% grad = lambda_smooth*smograd + lambda_time*timgrad + lambda_oval*ovagrad;
+
 cost = lambda_smooth*smoCost + lambda_obstacle*obsCost + lambda_dynamic*dynCost + lambda_time*timCost + lambda_oval*ovaCost;
 grad = lambda_smooth*smograd + lambda_obstacle*obsgrad + lambda_dynamic*dyngrad + lambda_time*timgrad + lambda_oval*ovagrad;
 
