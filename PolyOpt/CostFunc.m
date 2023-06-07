@@ -18,23 +18,47 @@ lambda_dynamic  = segpoly.lambda_dynamic;
 lambda_time     = segpoly.lambda_time;
 lambda_oval     = segpoly.lambda_oval;
 
+
 if (DEBUG_PRINT)
     if(lambda_smooth ~= 0)
+%         [smoCost,smograd]=smoothCost(coeffs,segpoly);
+%         cost = lambda_smooth*smoCost;
+%         grad = lambda_smooth*smograd;
         fprintf("smoCost = %8.6f; ",lambda_smooth*smoCost);
     end
     if(lambda_obstacle ~= 0)
+%         [obsCost,obsgrad]=obstacleCost(coeffs,segpoly);
+%         cost = lambda_obstacle*obsCost + cost;
+%         grad = lambda_obstacle*obsgrad + grad;
         fprintf("obsCost = %8.6f; ",lambda_obstacle*obsCost);
     end
     if(lambda_dynamic ~= 0)
+%         [dynCost,dyngrad]=dynamicCost(coeffs,segpoly);
+%         cost = lambda_dynamic*dynCost + cost;
+%         grad = lambda_dynamic*dyngrad + grad;
         fprintf("dynCost = %8.6f; ",lambda_dynamic*dynCost);
     end
-    if(lambda_time ~= 0)
-        fprintf("timCost = %8.6f; ",lambda_time*timCost);
-    end
     if(lambda_oval ~= 0)
+%         [ovaCost,ovagrad]=ovalCost(coeffs,segpoly);
+%         cost = lambda_oval*ovaCost + cost;
+%         grad = lambda_oval*ovagrad + grad;
         fprintf("ovaCost = %8.6f; ",lambda_oval*ovaCost);
     end
+    if(lambda_time ~= 0)
+%         [timCost,timgrad]=timeCost(coeffs,segpoly);
+%         cost = lambda_time*timCost + cost;
+%         grad = lambda_time*timgrad + grad;
+        fprintf("timCost = %8.6f; ",lambda_time*timCost);
+    end
     fprintf("\n");
+% else
+%     [smoCost,smograd]=smoothCost(coeffs,segpoly);
+%     [obsCost,obsgrad]=obstacleCost(coeffs,segpoly);
+%     [dynCost,dyngrad]=dynamicCost(coeffs,segpoly);
+%     [timCost,timgrad]=timeCost(coeffs,segpoly);
+%     [ovaCost,ovagrad]=ovalCost(coeffs,segpoly);
+%     cost = lambda_smooth*smoCost + lambda_obstacle*obsCost + lambda_dynamic*dynCost + lambda_time*timCost + lambda_oval*ovaCost;
+%     grad = lambda_smooth*smograd + lambda_obstacle*obsgrad + lambda_dynamic*dyngrad + lambda_time*timgrad + lambda_oval*ovagrad;
 end
 
 if(DEBUG_PLOT)

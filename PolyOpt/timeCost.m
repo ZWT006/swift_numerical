@@ -21,6 +21,7 @@ if (TimeOptimal)
 %     gradt = T;
     cost = sum(T.^2);
     gradt = 2*T.^2;
+    gradt = gradt(:);
     grad = [grad;gradt];
 end
 

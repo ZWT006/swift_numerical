@@ -7,15 +7,16 @@
 % 2): init values 问题,应该得是设置了初始点更快优化呀
 % 3): low/up bound 问题,NLopt怕是不提供这功能呀
 % 4): SupplyGradient 没有不太行呀优化非常慢
-% 5): 
+% 5): GradientCheck 除了smooth之外,其它都不能通过check
 % TODO：需要完善的地方
 % 1):[x] 倒数 Obstacle Cost 的 grad 计算
 % 2):[x] 利用求解等式约束使优化问题降维
 % 3):[x] 添加 Quadratic Programming 用于求解 Init Optimal Value
-% 8): Quadratic init value 的超限处理,根据max上限进行缩放
+% 8):[x] Quadratic init value 的超限处理,根据max上限进行缩放
+%        waypoint 处添加OP问题的不等式约束来避免
 % 9):[x] 利用Equality Constrain使问题降维并去除该约束
 % 4):[x] 编写Constrain/Cost验证函数
-% 5): 编写 NLopt 优化求解相关函数文件
+% 5): 编写 NLopt 优化求解相关函数文件 不等式约束怎么添加
 % 6):[x] 与前面 LazyKinoPRM 的工作拼接 实现完整的工作流程
 % 7): OvalConstrain 的效果验证
 % SPEED UP：哪些点可以加速优化求解
@@ -48,9 +49,11 @@ pv_max = Vel_factor*1.5;
 pa_max = Vel_factor*6;
 wv_max = W_factor*1.5;
 wa_max = W_factor*6;
-% Vel_factor = 3; % reference Linear Velocity  2m/s
-% W_factor   = 2.5; % reference Angular Velocity rad/s
-
+% Vel_factor = 1.8; % reference Linear Velocity  2m/s
+% W_factor   = 1.8; % reference Angular Velocity rad/s
+% 二次优化 dynamic limit
+QPdynamiclimit = true;
+% #########################################################################
 dist= zeros(n_seg, 1);
 ts  = ones(n_seg, 1)*0.8;
 % 计算参考线速度时间
@@ -95,11 +98,20 @@ n_order       = 7;          % 多项式的阶数 自由度为 n_order+1
 n_costorder   = 4;          % 最小化的求导阶次 0=posi;1=vel;2=acc;3=jerk;4=snap;
 n_inputorder  = 4;          % 输入的阶次 可以理解为segment 之间满足等式约束的阶次
 
+% Quadratic Optimization Structure
+OP_structure.QP_inequality = QPdynamiclimit;
 % Time Clock ###########
 tQPStart = tic;
-poly_coef_x = MinimumPolySolver(path(:, 1), ts, n_seg, n_order, n_costorder, n_inputorder);
-poly_coef_y = MinimumPolySolver(path(:, 2), ts, n_seg, n_order, n_costorder, n_inputorder);
-poly_coef_q = MinimumPolySolver(path(:, 3), ts, n_seg, n_order, n_costorder, n_inputorder);
+
+OP_structure.v_max = pv_max;
+OP_structure.a_max = pa_max;
+poly_coef_x = MinimumPolySolver(path(:, 1), ts, n_seg, n_order, n_costorder, n_inputorder,OP_structure);
+OP_structure.v_max = pv_max;
+OP_structure.a_max = pa_max;
+poly_coef_y = MinimumPolySolver(path(:, 2), ts, n_seg, n_order, n_costorder, n_inputorder,OP_structure);
+OP_structure.v_max = wv_max;
+OP_structure.a_max = wa_max;
+poly_coef_q = MinimumPolySolver(path(:, 3), ts, n_seg, n_order, n_costorder, n_inputorder,OP_structure);
 
 % Time Clock ###########
 tQPEnd = toc(tQPStart);
@@ -221,9 +233,6 @@ segpoly.DEBUG_PLOT  = true;
 segpoly.TIME_PRINT  = false;
 segpoly.CHECK_PLOT  = true;
 %%%%%%%%%%%%% GLOBAL DEFINE
-MATLAB_SOLVER = 1;
-NLOPT_SOLVER  = 2;
-OPT_SOLVER = MATLAB_SOLVER;
 PLOT_DEBUG = true;
 QP_PLOT    = true;
 FEASIBLE_CHECK = true;
@@ -252,19 +261,27 @@ ConstantBounds    = true;
 % 梯度检查选项 正常求解关闭
 CheckGradients    = false;
 % ReduceDOF
-ReduceOptimalValue = true;
+ReduceOptimalValue = false;
+% 求解器选择 ###############################################################
+MATLAB_SOLVER = 1;
+NLOPT_SOLVER  = 2;
+OPT_SOLVER = NLOPT_SOLVER;
+%##########################################################################
+if (OPT_SOLVER == NLOPT_SOLVER)
+    ReduceOptimalValue = true;
+end
 % constant threshold
 segpoly.ds = 0.05; % 距离分辨率
 segpoly.dt = 0.05; % 时间分辨率
 segpoly.d_th = 0.5; % 距离代价的阈值
 % 几种cost的权重
-segpoly.lambda_smooth = 0.1;     % default 1    0.1
-segpoly.lambda_obstacle =1;%0.01; % default 0.01    1
-segpoly.lambda_dynamic = 10;%500;   % default 500    1
-segpoly.lambda_time = 8000;%3000;     % default 2000    8000
-segpoly.lambda_oval = 0;%10;       % default 10
+segpoly.lambda_smooth = 0.1;        % default 1     0.1
+segpoly.lambda_obstacle =1;%0.01;   % default 0.01  1       1
+segpoly.lambda_dynamic = 10;%500;   % default 500   1       10
+segpoly.lambda_time = 8000;%3000;   % default 2000  8000    
+segpoly.lambda_oval = 100;%10;       % default 10
 % oval cost 和 oval constrain 选择一个起作用即可
-segpoly.switch_ovalcon = true;
+segpoly.switch_ovalcon = false;
 % Nonlinear equality Constrain
 segpoly.switch_equacon = true;
 % Using Equality Constrain Reduce Optimization DOF 
@@ -366,6 +383,7 @@ if (TimeOptimal)
     upb  = [upb ;ones(n_seg,1)*1.6];
 end
 
+opt_num = length(x0);
 
 % [Re_Aeq,Re_beq] = polytraj.SolveAeqbeq(x0,segpoly);
 %% 求解优化问题
@@ -394,7 +412,6 @@ options.ConstraintTolerance = 1e-5;
 problem.options = options;
 problem.solver = 'fmincon';
 problem.objective = @(x)CostFunc(x,segpoly); %匿名函数可以使用额外参数
-opt_num = length(x0);
 problem.x0 = x0; % 起始迭代点
 if (ConstantBounds)
     problem.lb = lowb;
@@ -418,15 +435,17 @@ end
 % x = fmincon(fun,x0,A,b,Aeq,beq,lb,ub,nonlcon,options)
 tfminconStart = tic;
 [coeffs, fval, exitflag, output]=fmincon(problem);
-tfminconEnd = toc(tfminconStart);
+tNonlinearEnd = toc(tfminconStart);
 
     case NLOPT_SOLVER % NLopt 非线性优化
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Low-stage BFGS:   NLOPT_LD_TNEWTON_PRECOND_RESTART;NLOPT_LD_TNEWTON_PRECOND
 %                   NLOPT_LD_TNEWTON_RESTART        ;NLOPT_LD_TNEWTON 
-opt.algorithm = NLOPT_LD_MMA;
-opt.min_objective = @(x)smoothCost(x,segpoly); %匿名函数可以使用额外参数
-nintlength = ones(segpoly.coeffl,1);
+opt.algorithm = NLOPT_LD_TNEWTON_PRECOND_RESTART;
+opt.min_objective = @(x)CostFunc(x,segpoly); %匿名函数可以使用额外参数
+opt.lower_bounds = lowb;
+opt.upper_bounds = upb;
+nintlength = ones(segpoly.coeffl,1); % 这个变量好像没啥用呀？
 % reference：https://nlopt.readthedocs.io/en/latest/NLopt_Reference/#nonlinear-constraints
 
 % fc 是不等式约束
@@ -439,10 +458,10 @@ nintlength = ones(segpoly.coeffl,1);
 
 
 opt.xtol_rel = (1e-4);
-[xopt, fmin, retcode] = nlopt_optimize(opt, x0);
-
+tNLoptStart = tic;
+[coeffs, fmin, retcode] = nlopt_optimize(opt, x0);
+tNonlinearEnd = toc(tNLoptStart);
 end
-
 
 [obsCost,obsgrad]=obstacleCost(coeffs,segpoly);
 [smoCost,smograd]=smoothCost(coeffs,segpoly);
@@ -493,7 +512,7 @@ if (OPT_CLOCK)
     fprintf("############################# TIME CHECK ################################\n")
     fprintf("Segments = %2d, Optimal Values = %4d \n",n_seg,opt_num);
     fprintf("Quadratic Optimization Clock = %4.6f \n",tQPEnd);
-    fprintf("fmincon   Optimization Clock = %4.6f \n",tfminconEnd);
+    fprintf("Nonlinear Optimization Clock = %4.6f \n",tNonlinearEnd);
 end
 
 % polynomial trajectory 多项式轨迹
@@ -503,17 +522,19 @@ polytraj = polytraj.setTarray(ts);
 [pos,vel,acc]=polytraj.getStates();
 
 if (segpoly.DEBUG_PLOT)
-figure(optfp)
-hold on
-xlabel("iter");
-ylabel("cost");
-plot(costArray(:,1),'r-');
-plot(costArray(:,2),'b-');
-plot(costArray(:,3),'g-');
-plot(costArray(:,4),'y-');
-plot(costArray(:,5),'k-');
-legend('smoCost','obsCost','dynCost','timCost','ovaCost');
-grid on
+    if (~isempty(costArray))
+        figure(optfp)
+        hold on
+        xlabel("iter");
+        ylabel("cost");
+        plot(costArray(:,1),'r-');
+        plot(costArray(:,2),'b-');
+        plot(costArray(:,3),'g-');
+        plot(costArray(:,4),'y-');
+        plot(costArray(:,5),'k-');
+        legend('smoCost','obsCost','dynCost','timCost','ovaCost');
+        grid on
+    end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

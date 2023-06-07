@@ -1,4 +1,4 @@
-function [outputArg1,outputArg2] = inequialConstrain(inputArg1,inputArg2)
+function [outputArg1,outputArg2] = inequialConstrain(coeffs,segpoly)
 %INEQUIALCONSTRAIN 此处显示有关此函数的摘要
 %   此处显示详细说明
 outputArg1 = inputArg1;

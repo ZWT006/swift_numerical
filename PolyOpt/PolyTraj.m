@@ -52,7 +52,7 @@ classdef PolyTraj
         end
         function obj = setCoeffs(obj,coeffs)
             % 设置[x,y,q]的系数
-            obj.coeffs = coeffs;
+            obj.coeffs = coeffs(:);
         end
         function obj = setTarray(obj,T)
             % 设置每段seg的时间 T = t
