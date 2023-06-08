@@ -36,17 +36,31 @@ classdef OpenList
             end
         end
         %% if node is in openlist? 
-        function list_index = isOpenList(OP,Current_index)
-            %判断该点是否已经在index_list中 是 -> idx; 否 -> 0;
-            list_index = 0;
-            [fn_length,~] = size(OP.node_index);
-            for idx = 1:fn_length
-                if (OP.node_index(idx,1) == Current_index(1) && ...
-                    OP.node_index(idx,2) == Current_index(2) && ...
-                    OP.node_index(idx,3) == Current_index(3))
-                    list_index = idx;
-                    return;
-                end
+%         function list_index = isOpenList(OP,Current_index)
+%             %判断该点是否已经在index_list中 是 -> idx; 否 -> 0;
+%             list_index = 0;
+%             [fn_length,~] = size(OP.node_index);
+%             for idx = 1:fn_length
+%                 if (OP.node_index(idx,1) == Current_index(1) && ...
+%                     OP.node_index(idx,2) == Current_index(2) && ...
+%                     OP.node_index(idx,3) == Current_index(3))
+%                     list_index = idx;
+%                     return;
+%                 end
+%             end
+%         end
+        %下面这个代码对应上面的for循环优化
+        function list_index = isOpenList(OP, Current_index)
+            % 判断该点是否已经在 index_list 中 是 -> idx; 否 -> 0;
+            [fn_length, ~] = size(OP.node_index);
+            if fn_length==0
+                list_index=0;
+                return ;
+            end
+            index_match = all(OP.node_index == Current_index, 2);
+            list_index = find(index_match, 1);
+            if isempty(list_index)
+                list_index = 0;
             end
         end
 %          %% Pop Index pose
@@ -146,13 +160,19 @@ end
 OP.fn_list =  [OP.fn_list;Whole_Cost,ListIdenx];
 end
 %% min cost list delet special one
-function OP = DeletFnlist(OP,ListIdenx)
-% fn_list中某个节点的fn_cost要更新，重排该列表
-[list_length,~] = size(OP.fn_list);
-for idx=1:list_length
-    if (OP.fn_list(idx,2) == ListIdenx)
-        OP.fn_list(idx,:) = []; % 清除该点赋空值，队列
-        return;
-    end
-end
+% function OP = DeletFnlist(OP,ListIdenx)
+% % fn_list中某个节点的fn_cost要更新，重排该列表
+% [list_length,~] = size(OP.fn_list);
+% for idx=1:list_length
+%     if (OP.fn_list(idx,2) == ListIdenx)
+%         OP.fn_list(idx,:) = []; % 清除该点赋空值，队列
+%         return;
+%     end
+% end
+% end
+%对for循环代码进行优化
+function OP = DeletFnlist(OP, ListIndex)
+    % fn_list中某个节点的fn_cost要更新，重排该列表
+    idx = (OP.fn_list(:, 2) == ListIndex); % 逻辑索引，找到需要删除的行
+    OP.fn_list(idx, :) = []; % 删除对应行
 end

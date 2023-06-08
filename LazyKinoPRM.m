@@ -587,26 +587,38 @@ path=flip(path);
 %     path(idx+1,3)=(angle(path(idx,1),path(idx,2),path(idx+1,1),path(idx+1,2))+angle(path(idx+1,1),path(idx+1,2),path(idx+2,1),path(idx+2,2)))/2;
 % end
 
-path_m=zeros(path_length,1);
-for idx = 1:path_length-2
-    temp_angle=AngleDelta(path(idx+1,3),path(idx+2,3))/2+path(idx+1,3);
-    if (abs(temp_angle)>pi)
-        if (temp_angle < -pi)
-            temp_angle = 2*pi+temp_angle;
-        else
-            temp_angle = -2*pi+temp_angle;
-        end
-    end
-    path_m(idx+1)=temp_angle;
-end
+% path_m=zeros(path_length,1);
+% for idx = 1:path_length-2
+%     temp_angle=AngleDelta(path(idx+1,3),path(idx+2,3))/2+path(idx+1,3);
+%     if (abs(temp_angle)>pi)
+%         if (temp_angle < -pi)
+%             temp_angle = 2*pi+temp_angle;
+%         else
+%             temp_angle = -2*pi+temp_angle;
+%         end
+%     end
+%     path_m(idx+1)=temp_angle;
+% end
+% 计算角度差值
+angle_diff = AngleDelta(path(2:path_length-1, 3), path(3:path_length, 3)) / 2 + path(2:path_length-1, 3);
+% 处理角度超过 [-pi, pi] 范围的情况
+angle_diff = angle_diff - 2*pi*floor((angle_diff + pi)/(2*pi));
+% 更新 path_m 数组
+path_m = [0; angle_diff; 0];
+
 path_m(1)=path(1,3);
 path_m(end)=path(end,3);
 path(:,3)=path_m;
 [path_length,~] = size(path);
 detl = 30;
-for idx=1:path_length
-    plot([path(idx,1),path(idx,1)+cos(path(idx,3))*detl],[path(idx,2),path(idx,2)+sin(path(idx,3))*detl],'-','Color','k','LineWidth',2);
-end
+% 计算坐标
+end_x = path(:, 1) + cos(path(:, 3)) * detl;
+end_y = path(:, 2) + sin(path(:, 3)) * detl;
+% 绘制路径线段
+plot([path(:, 1) end_x]', [path(:, 2) end_y]', '-', 'Color', 'k', 'LineWidth', 2);
+% for idx=1:path_length
+%     plot([path(idx,1),path(idx,1)+cos(path(idx,3))*detl],[path(idx,2),path(idx,2)+sin(path(idx,3))*detl],'-','Color','k','LineWidth',2);
+% end
 
 % [xt,yt,qt] = obvpsg.st();
 % figure(fp);

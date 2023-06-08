@@ -189,8 +189,9 @@ function path_length = path_ds(pxc,pyc,ds,T)
     t=0:ds:T+ds;
     x(:,1) = polyval(pxc,t);
     y(:,1) = polyval(pyc,t);
-    path_length = 0;
-    for idx=1:length(t)-1
-        path_length = path_length + sqrt((x(idx)-x(idx+1))^2+(y(idx)-y(idx+1))^2);
-    end
+    path_length = sum(sqrt(diff(x).^2 + diff(y).^2));
+%     path_length = 0;
+%     for idx=1:length(t)-1
+%         path_length = path_length + sqrt((x(idx)-x(idx+1))^2+(y(idx)-y(idx+1))^2);
+%     end
 end
