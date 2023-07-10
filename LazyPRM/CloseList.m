@@ -24,18 +24,22 @@ classdef CloseList
             obj.node_index = [obj.node_index;Index];
         end
         %% 插入新节点
-        function flag = isCloseList(obj,Index)
-            %METHOD1 此处显示有关此方法的摘要
-            %   此处显示详细说明
-            flag = false;
-            for idx = 1:obj.list_length
-               if (Index(1)==obj.node_index(idx,1) && ...
-                   Index(2)==obj.node_index(idx,2) && ...
-                   Index(3)==obj.node_index(idx,3) )
-                   flag = true;
-                   return;
-               end
-            end
+%         function flag = isCloseList(obj,Index)
+%             %METHOD1 此处显示有关此方法的摘要
+%             %   此处显示详细说明
+%             flag = false;
+%             for idx = 1:obj.list_length
+%                if (Index(1)==obj.node_index(idx,1) && ...
+%                    Index(2)==obj.node_index(idx,2) && ...
+%                    Index(3)==obj.node_index(idx,3) )
+%                    flag = true;
+%                    return;
+%                end
+%             end
+%         end
+% 对上面的代码进行修改
+        function flag = isCloseList(obj, Index)
+            flag = any(all(Index == obj.node_index, 2));
         end
     end
 end
