@@ -26,10 +26,10 @@ clc;
 SEARCH_DEBUG = false;
 
 % 实时刷新图像
-PLOT_DEBUG = false;
+PLOT_DEBUG = true;
 
 % 打印路径的状态信息,速度,加速度等
-OBVP_DEBUG = false;
+OBVP_DEBUG = true;
 
 % 固定采样点,观察obvp效果
 ESTEND_FLAG = false;
@@ -57,7 +57,7 @@ angle = @(x1,y1,x2,y2) atan2((y2-y1),(x2-x1));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 加载地图
-mapaddress = "map2.png"; % 有多个可选地图位于/map 文件夹
+mapaddress = "map10.png"; % 有多个可选地图位于/map 文件夹
 img = imread(mapaddress);   %空间地图
 img = rgb2gray(img);   %空间地图转换为灰度图   
 % img = transpose(img); 
@@ -118,13 +118,15 @@ set(gca,'Ydir','normal');
 % p=ginput();                 %选取起始与结束位置
 % p=[50,50;700,700];
 if (mapaddress == "map4.png" || mapaddress == "map5.png" || ...
-    mapaddress == "map9.png" )
-    Point_i=[50,50,deg2rad(45)];
+    mapaddress == "map9.png" || mapaddress == "map10.png")
+%     Point_i=[50,50,deg2rad(45)];
+    Point_i=[200,280,deg2rad(90)];
 %     Point_i=[540,340,deg2rad(45)];
 
 %     Point_f=[935,580,deg2rad(-45)];
 %     Point_f=[942,542,deg2rad(135)];
-    Point_f=[1153,145,deg2rad(45)];
+%     Point_f=[1153,145,deg2rad(45)];
+    Point_f=[200,200,deg2rad(-45)];
 
 %     Point_i=[535,250,deg2rad(45)];
 %     Point_f=[1000,100,deg2rad(-45)];
@@ -601,8 +603,18 @@ path=flip(path);
 % end
 % 计算角度差值
 angle_diff = AngleDelta(path(2:path_length-1, 3), path(3:path_length, 3)) / 2 + path(2:path_length-1, 3);
+angle_diff_raw = AngleDelta(path(2:path_length-1, 3), path(3:path_length, 3)) / 2 + path(2:path_length-1, 3);
+angle_delta = AngleDelta(path(2:path_length-1, 3), path(3:path_length, 3));
 % 处理角度超过 [-pi, pi] 范围的情况
-angle_diff = angle_diff - 2*pi*floor((angle_diff + pi)/(2*pi));
+for i=1:length(angle_diff)
+    if (abs(angle_diff(i)) > pi)
+        if (angle_diff(i) > 0) % -0 ~ -180
+            angle_diff(i) = angle_diff(i) - 2*pi;
+        else % +0 ~ +180
+            angle_diff(i) = angle_diff(i) + 2*pi;
+        end
+    end
+end
 % 更新 path_m 数组
 path_m = [0; angle_diff; 0];
 

@@ -37,7 +37,7 @@ clear;clc;
 SAVE_ALL = false;
 
 % map 加载地图与 LazyKinoPRM 中加载地图保持一致
-map = imread('F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\map\map2.png');
+map = imread('F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\map\map10.png');
 load("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\pathnode.mat");
 RATION = 100;
 path(:,1)=path(:,1)/RATION;
@@ -327,7 +327,7 @@ ReduceOptimalValue = false;
 % 求解器选择 ###############################################################
 MATLAB_SOLVER = 1;
 NLOPT_SOLVER  = 2;
-OPT_SOLVER = MATLAB_SOLVER;
+OPT_SOLVER = NLOPT_SOLVER;
 %##########################################################################
 if (OPT_SOLVER == NLOPT_SOLVER)
     ReduceOptimalValue = true;

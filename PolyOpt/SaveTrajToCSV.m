@@ -1,7 +1,7 @@
 %%%%% 保存 Trajectory 为 .csv 文件
 
 TRAJ_DATA = [X_n',Y_n',Q_n',X_dn',Y_dn',Q_dn'];
-filename = "E:\datas\Swaft\Trajectory\TRAJ_DATA_SHORT.csv";
+filename = "E:\datas\Swaft\Trajectory\TRAJ_DATA_SEMICIRCLE.csv";
 TRAJ_DATA = round(TRAJ_DATA,4);
 writematrix(TRAJ_DATA,filename);
 
