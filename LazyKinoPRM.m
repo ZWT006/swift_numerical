@@ -57,7 +57,7 @@ angle = @(x1,y1,x2,y2) atan2((y2-y1),(x2-x1));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 加载地图
-mapaddress = "map0.png"; % 有多个可选地图位于/map 文件夹
+mapaddress = "map2.png"; % 有多个可选地图位于/map 文件夹
 img = imread(mapaddress);   %空间地图
 img = rgb2gray(img);   %空间地图转换为灰度图   
 % img = transpose(img); 
@@ -75,7 +75,7 @@ axis equal
 axis on
 set(gca,'Ydir','normal');
 % title('xy position')
-axis on
+% axis on
 grid on
 
 if (OBVP_DEBUG)
@@ -107,7 +107,7 @@ initsdfmap.showSDFMap(fp);
 hold on
 grid on
 axis equal
-axis on
+% axis on
 set(gca,'Ydir','normal');
 
 
@@ -559,11 +559,11 @@ end
 path(n+1,:) = Point_i;
 path_index(n+1) = 1;
 
-% [path_length,~] = size(path);
-% % for idx=1:path_length-1
-% for idx=2:path_length-1
-%     plot([path(idx,1),path(idx+1,1)],[path(idx,2),path(idx+1,2)],'--','Color','g','LineWidth',1);
-% end
+[path_length,~] = size(path);
+% for idx=1:path_length-1
+for idx=2:path_length-1
+    plot([path(idx,1),path(idx+1,1)],[path(idx,2),path(idx+1,2)],'--','Color','g','LineWidth',1);
+end
 % detl = 30;
 % % for idx=1:path_length
 % for idx=2:path_length
@@ -582,7 +582,7 @@ path=flip(path);
 %     angleset(idx)=angle(path(idx-1,1),path(idx-1,2),path(idx,1),path(idx,2));
 % end
 %##########################################################################
-% 偏转角平滑处理
+%%%%% 偏转角平滑处理
 % for idx = 1:path_length-2
 %     path(idx+1,3)=(angle(path(idx,1),path(idx,2),path(idx+1,1),path(idx+1,2))+angle(path(idx+1,1),path(idx+1,2),path(idx+2,1),path(idx+2,2)))/2;
 % end
@@ -614,20 +614,23 @@ end
 % 
 % for idx=1:path_length
 idx=1;
+path_obvp = [];
 obvptemp = GoalNodeList.node_obvp(path_index(idx));
     [xt,yt,qt] = obvptemp.st();
     figure(fp);
     plot(xt(:,1)*RATIO,yt(:,1)*RATIO,'b-','LineWidth',2);
+    path_obvp = [path_obvp;obvptemp];
 for idx=2:path_length-1
     obvptemp = openlist.node_obvp(path_index(idx));
     [xt,yt,qt] = obvptemp.st();
     figure(fp);
     plot(xt(:,1)*RATIO,yt(:,1)*RATIO,'b-','LineWidth',2);
+    path_obvp = [path_obvp;obvptemp];
 end
 axis on;
 grid on;
 set(gca,'GridColor',[0.5 0.5 0.5],'GridLineStyle','--','GridAlpha',0.2,'XMinorGrid','off','YMinorGrid','off','XTick',[0:100:800],'YTick',[0:100:800]);
-save('path.mat','path')
+save('pathnode.mat','path','path_obvp')
 %% Step6: show the trajectory
 [path_length,~]=size(path);
 
@@ -761,6 +764,7 @@ statev(1,:) = [0,0,0];
 
 if(~ESTEND_FLAG)
     save('pose_map.mat','pose_map');
+    saveas(gcf,'lazykinoPRM.fig');
 end
 
 function sdfcost = getSDFcost(sdf_factor,dist_th,parsdf,newsdf,distance_cost,xy_cost)

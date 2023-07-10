@@ -68,11 +68,13 @@ RGB4 = repmat(rescale(D4), [1 1 3]);
 % % imcontour(D1,'c-')
 % imcontour(D1)
 
+figure(9)
 
 bw_map = im2gray(map);
 % bw_map = im2bw(map);
 bw_map = imbinarize(bw_map);
 bw_map = ~bw_map;
+imshow(~bw_map);
 % 计算距离变换
 dist_transform = bwdist(bw_map);
 D1 = bwdist(bw_map,'euclidean');
@@ -80,20 +82,25 @@ D1 = bwdist(bw_map,'euclidean');
 I_norm = mat2gray(dist_transform);
 % 生成黄绿色渐进色彩映射表
 % cmap = parula(8);
-colormap(cool);
+colormap(bone);
+% colormap(cool);
+% colormap(winter);
 cmap = colormap;
+% cmap(:,1)=0;
+% cmap(:,3)=0;
 % 将灰度图映射到黄绿色渐进色彩映射表上，得到对应的RGB颜色值
 % 将颜色梯度翻转
 rgb = interp1(linspace(0, 1, 256), cmap, I_norm);
 % 将RGB颜色值与灰度图叠加，得到最终的彩色图
 set(gca,'Ydir','normal');
-imshow(rgb.*repmat(~bw_map,[1 1 3]))
+im = imshow(rgb.*repmat(~bw_map,[1 1 3]));
+im.AlphaData = 0.3;
 title('Euclidean')
 hold on
 % imcontour(D1,'c-')
 imcontour(D1)
 sdfMap = dist_transform*0.01; % 1 pixel = 1 cm
-clear bw_map cmap D1 D2 D3 D4 I_norm map rgb RGB4 RGB3 RGB2 RGB1 dist_transform
+% clear bw_map cmap D1 D2 D3 D4 I_norm map rgb RGB4 RGB3 RGB2 RGB1 dist_transform
 
 
 % [cols,rows,~]=size(sdfMap);

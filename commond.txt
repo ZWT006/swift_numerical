@@ -22,3 +22,6 @@ print -depsc2 kinolazyPRM_2.eps
 #DIR_GRID_M = 2;
 #c_angle = xy_grid/pi*1.2;
 print -depsc2 kinolazyPRM_3.eps
+
+# 保存指定fig为指定类型与名称的文件
+print(figure(2),'nontrajopt_000.eps','-depsc')

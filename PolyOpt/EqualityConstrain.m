@@ -109,7 +109,11 @@ subplot(1,3,3)
 spy(Re_Aeq)
 title('A factor')
 
-LU_coeffs = 
+figure(2)
+spy(Re_Aeq)
+title('Re_Aeq')
+
+% LU_coeffs = 
 
 % lu_solver = luSolver(Re_Aeq,Re_beq,50,50);
 % lu_solver = lu_solver.factorizeLU();
@@ -139,10 +143,10 @@ test_bias = test_beq-Re_beq;
 test_bias_sqr = sum(test_bias.^2);
 fprintf("div bias: %6.4f\n",test_bias_sqr);
 
-test_beq = Re_Aeq*LU_coeffs;
-test_bias = test_beq-Re_beq;
-test_bias_sqr = sum(test_bias.^2);
-fprintf("LU bias: %6.4f\n",test_bias_sqr);
+% test_beq = Re_Aeq*LU_coeffs;
+% test_bias = test_beq-Re_beq;
+% test_bias_sqr = sum(test_bias.^2);
+% fprintf("LU bias: %6.4f\n",test_bias_sqr);
 
 % 求解的coeffs 偏差 segpoly coeffs
 fprintf("segpoly coeffs bias:\n");
@@ -158,9 +162,9 @@ test_bias = segpoly.coeffs-div_coeffs;
 test_bias_sqr = sum(test_bias.^2);
 fprintf("DIV coeffs bias: %6.4f\n",test_bias_sqr);
 
-test_bias = segpoly.coeffs-LU_coeffs;
-test_bias_sqr = sum(test_bias.^2);
-fprintf("LU coeffs bias: %6.4f\n",test_bias_sqr);
+% test_bias = segpoly.coeffs-LU_coeffs;
+% test_bias_sqr = sum(test_bias.^2);
+% fprintf("LU coeffs bias: %6.4f\n",test_bias_sqr);
 
 % 求解的coeffs 偏差 linsolve
 fprintf("linsolve coeffs bias:\n");
@@ -172,6 +176,6 @@ test_bias = test_coeffs-div_coeffs;
 test_bias_sqr = sum(test_bias.^2);
 fprintf("DIV coeffs bias: %6.4f\n",test_bias_sqr);
 
-test_bias = test_coeffs-LU_coeffs;
-test_bias_sqr = sum(test_bias.^2);
-fprintf("LU coeffs bias: %6.4f\n",test_bias_sqr);
+% test_bias = test_coeffs-LU_coeffs;
+% test_bias_sqr = sum(test_bias.^2);
+% fprintf("LU coeffs bias: %6.4f\n",test_bias_sqr);

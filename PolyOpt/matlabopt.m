@@ -34,12 +34,34 @@ addpath("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\TrajGener\")
 % close all;
 clear;clc;
 
+SAVE_ALL = false;
+
 % map 加载地图与 LazyKinoPRM 中加载地图保持一致
-map = imread('F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\map\map0.png');
-load("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\path.mat");
+map = imread('F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\map\map2.png');
+load("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\pathnode.mat");
 RATION = 100;
 path(:,1)=path(:,1)/RATION;
 path(:,2)=path(:,2)/RATION;
+
+%##########################################################################
+% 角度平滑性处理,与LazyKinoPRM中作用
+[path_length,~]=size(path);
+path_m=zeros(path_length,1);
+for idx = 1:path_length-2
+    temp_angle=AngleDelta(path(idx+1,3),path(idx+2,3))/2+path(idx+1,3);
+    if (abs(temp_angle)>pi)
+        if (temp_angle < -pi)
+            temp_angle = 2*pi+temp_angle;
+        else
+            temp_angle = -2*pi+temp_angle;
+        end
+    end
+    path_m(idx+1)=temp_angle;
+end
+path_m(1)=path(1,3);
+path_m(end)=path(end,3);
+path(:,3)=path_m;
+%##########################################################################
 [n_seg,~]=size(path);
 n_seg = n_seg - 1;
 % reference parameters
@@ -197,6 +219,46 @@ for idx=0:n_seg-1
     end
 end
 QP_k=QP_k-1;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% 选择参考轨迹是 search 还是 QP
+OBVP_PLOT  = true;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if (OBVP_PLOT)
+    QPX_n = [];
+    QPY_n = [];
+    QPQ_n = [];
+    QPX_dn = [];
+    QPY_dn = [];
+    QPQ_dn = [];
+    QPX_ddn = [];
+    QPY_ddn = [];
+    QPQ_ddn = [];
+    QP_k=1;
+    for idx=0:n_seg-1
+        obvptemp = path_obvp(n_seg-idx);
+        [xt,yt,qt] = obvptemp.st();
+        [len,~] = size(xt);
+        for t = 1:len
+            % Quadratic Optimization ##########################################
+
+            QPX_n(QP_k)  = xt(t,1)*RATION;
+            QPY_n(QP_k)  = yt(t,1)*RATION;
+            QPQ_n(QP_k)  = qt(t,1);
+            % velocity
+
+            QPX_dn(QP_k)  = xt(t,2);
+            QPY_dn(QP_k)  = yt(t,2);
+            QPQ_dn(QP_k)  = qt(t,2);
+            % accelaration
+
+            QPX_ddn(QP_k)  = xt(t,3);
+            QPY_ddn(QP_k)  = yt(t,3);
+            QPQ_ddn(QP_k)  = qt(t,3);
+            QP_k=QP_k+1;
+        end
+    end
+    QP_k=QP_k-1;
+end
 
 %Step2: 根据选择分段重置path/ts/start_cond/goal_cond
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -233,7 +295,7 @@ segpoly.DEBUG_PLOT  = true;
 segpoly.TIME_PRINT  = false;
 segpoly.CHECK_PLOT  = true;
 %%%%%%%%%%%%% GLOBAL DEFINE
-PLOT_DEBUG = true;
+PLOT_DEBUG = false;
 QP_PLOT    = true;
 FEASIBLE_CHECK = true;
 OPT_CLOCK  = true;
@@ -265,7 +327,7 @@ ReduceOptimalValue = false;
 % 求解器选择 ###############################################################
 MATLAB_SOLVER = 1;
 NLOPT_SOLVER  = 2;
-OPT_SOLVER = NLOPT_SOLVER;
+OPT_SOLVER = MATLAB_SOLVER;
 %##########################################################################
 if (OPT_SOLVER == NLOPT_SOLVER)
     ReduceOptimalValue = true;
@@ -279,9 +341,9 @@ segpoly.lambda_smooth = 0.1;        % default 1     0.1
 segpoly.lambda_obstacle =1;%0.01;   % default 0.01  1       1
 segpoly.lambda_dynamic = 10;%500;   % default 500   1       10
 segpoly.lambda_time = 8000;%3000;   % default 2000  8000    
-segpoly.lambda_oval = 100;%10;       % default 10
+segpoly.lambda_oval = 0;%10;       % default 10
 % oval cost 和 oval constrain 选择一个起作用即可
-segpoly.switch_ovalcon = false;
+segpoly.switch_ovalcon = true;
 % Nonlinear equality Constrain
 segpoly.switch_equacon = true;
 % Using Equality Constrain Reduce Optimization DOF 
@@ -590,17 +652,21 @@ figure (fp)
 hold on
 datename  = " nonlinear";
 pic_title = strcat("xy map & palstance",datename);
-title(pic_title);
+% title(pic_title);
 AngUNIT=50;
 [path_length,~] = size(path);
-for idx=1:path_length
-%     plot([path(idx,1),path(idx,1)+cos(path(idx,3))*AngUNIT],[path(idx,2),path(idx,2)+sin(path(idx,3))*AngUNIT],'-','Color','b','LineWidth',1);
-    plot([path(idx,1)*RATION,path(idx,1)*RATION+cos(path(idx,3))*AngUNIT],[path(idx,2)*RATION,path(idx,2)*RATION+sin(path(idx,3))*AngUNIT],'-','Color','b','LineWidth',1);
-%     plot([path(idx,1)*RATION,path(idx,1)*RATION+cos(path_m(idx))*AngUNIT],[path(idx,2)*RATION,path(idx,2)*RATION+sin(path_m(idx))*AngUNIT],'c-','LineWidth',2);
-end
-for idx=1:path_length-1
-    plot([path(idx,1)*RATION,path(idx+1,1)*RATION],[path(idx,2)*RATION,path(idx+1,2)*RATION],'g-','LineWidth',1);
-end
+
+%%&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&%%
+% for idx=1:path_length
+% %     plot([path(idx,1),path(idx,1)+cos(path(idx,3))*AngUNIT],[path(idx,2),path(idx,2)+sin(path(idx,3))*AngUNIT],'-','Color','b','LineWidth',1);
+%     plot([path(idx,1)*RATION,path(idx,1)*RATION+cos(path(idx,3))*AngUNIT],[path(idx,2)*RATION,path(idx,2)*RATION+sin(path(idx,3))*AngUNIT],'-','Color','b','LineWidth',1);
+% %     plot([path(idx,1)*RATION,path(idx,1)*RATION+cos(path_m(idx))*AngUNIT],[path(idx,2)*RATION,path(idx,2)*RATION+sin(path_m(idx))*AngUNIT],'c-','LineWidth',2);
+% end
+% for idx=1:path_length-1
+%     plot([path(idx,1)*RATION,path(idx+1,1)*RATION],[path(idx,2)*RATION,path(idx+1,2)*RATION],'g-','LineWidth',1);
+% end
+% scatter(pos(:,1)*RATION,pos(:,2)*RATION,25,'.k');
+%%&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&%%
 AngUNIT=5;
 k = k - 1;
 for idx=1:k
@@ -609,13 +675,15 @@ for idx=1:k
     theta = Q_n(idx);
     plot([X_n(idx),X_n(idx)+cos(theta)*detl],[Y_n(idx),Y_n(idx)+sin(theta)*detl],'b-','LineWidth',1);
 end
-plot(X_n, Y_n , 'r-');
+pt_opt = plot(X_n, Y_n , 'r-');
 % scatter(path(1:size(path, 1), 1), path(1:size(path, 1), 2),'ok');
-scatter(path(1:size(path, 1), 1)*RATION, path(1:size(path, 1), 2)*RATION,'ob');
+pt_way = scatter(path(1:size(path, 1), 1)*RATION, path(1:size(path, 1), 2)*RATION,'ok');
 if (QP_PLOT)
-    plot(QPX_n,QPY_n,'m--');
+    pt_ser = plot(QPX_n,QPY_n,'b--');
 end
-scatter(pos(:,1)*RATION,pos(:,2)*RATION,25,'.k');
+legend([pt_opt,pt_ser,pt_way],'optimal','search','waypoints','FontSize',12);
+xlabel("Position x[m]");
+ylabel("Position y[m]");
 
 grid on
 hold off
@@ -623,8 +691,21 @@ axis equal
 xlim([0 sdfmap.rows]);
 ylim([0 sdfmap.cols]);
 set(gcf,'Position', [100, 100, 100+sdfmap.rows, 100+sdfmap.cols]);
+if (sdfmap.rows == 800)
+xticks([0 100 200 300 400 500 600 700 800]);
+xticklabels({'0','1','2','3','4','5','6','7','8'});
+yticks([0 100 200 300 400 500 600 700 800]);
+yticklabels({'0','1','2','3','4','5','6','7','8'});
+elseif (sdfmap.rows == 1200)
+xticks([0 100 200 300 400 500 600 700 800 900 1000 1100 1200]);
+xticklabels({'0','1','2','3','4','5','6','7','8','9','10','11','12'});
+yticks([0 100 200 300 400 500 600 700 800]);
+yticklabels({'0','1','2','3','4','5','6','7','8'});
+end
 
 T = sum(QP_ts);
+
+%
 if(PLOT_DEBUG) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOT_DEBUG
 % xy velocity
 n=n+1;
@@ -632,22 +713,22 @@ figure (n)
 % subplot(2,3,iter);
 hold on
 pic_title = strcat("xy velocity",datename);
-title(pic_title);
+%title(pic_title);
 tv=0:tstep:(k-1)*tstep;
 tv = tv + Tv0;
-plot(tv,X_dn, 'r-');
-plot(tv,Y_dn, 'b-');
+pt_xopt = plot(tv,X_dn, 'r-');
+pt_yopt = plot(tv,Y_dn, 'b-');
 if (QP_PLOT)
     tv=0:tstep:(QP_k-1)*tstep;
-    plot(tv,QPX_dn, 'r--');
-    plot(tv,QPY_dn, 'b--');
+    pt_xser = plot(tv,QPX_dn, 'r--');
+    pt_yser = plot(tv,QPY_dn, 'b--');
 end
 t_temp=0;
 for idx=1:length(ts)
     t_temp = t_temp + ts(idx);
     qdn_idx = ceil(t_temp/tstep);
-    scatter(t_temp+Tv0,X_dn(qdn_idx),'*r');
-    scatter(t_temp+Tv0,Y_dn(qdn_idx),'*b');
+    %scatter(t_temp+Tv0,X_dn(qdn_idx),'*r');
+    %scatter(t_temp+Tv0,Y_dn(qdn_idx),'*b');
 end
 %##############################################
 if (QP_PLOT)
@@ -655,19 +736,27 @@ if (QP_PLOT)
     for idx=1:length(QP_ts)
         t_temp = t_temp + QP_ts(idx);
         qdn_idx = ceil(t_temp/tstep);
-        scatter(t_temp,QPX_dn(qdn_idx),'xr');
-        scatter(t_temp,QPY_dn(qdn_idx),'xb');
+        %scatter(t_temp,QPX_dn(qdn_idx),'xr');
+        %scatter(t_temp,QPY_dn(qdn_idx),'xb');
     end
 end
 % legend('x vel','y vel');
-grid on
-xlim([0 ceil(T)]);
+% grid on
+box on
+
+txt = ylabel('linear velocity [m/s]');
+set(txt, 'Interpreter', 'latex','FontSize',12);
+xlabel("time [s]",'FontSize',12);
+xlim([0 ceil(T)+2]);
 % ylim([-150 250]);
-ylim([floor(min(Y_dn))-2 ceil(max(Y_dn))+2]);
-line([0,ceil(T)],[pv_max,pv_max],'linestyle','-','color','k','LineWidth',2);
-line([0,ceil(T)],[-pv_max,-pv_max],'linestyle','-','color','k','LineWidth',2);
-line([0,ceil(T)],[pv_max*bound_rate,pv_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
-line([0,ceil(T)],[-pv_max*bound_rate,-pv_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
+ythold = max([abs(min(QPY_dn)),abs(max(QPY_dn)),abs(min(QPX_dn)),abs(max(QPX_dn)),pv_max]);
+ylim([-ythold-1 ythold+1]);
+pt_boun = line([0,ceil(T)+2],[pv_max,pv_max],'linestyle','--','color','k','LineWidth',1);
+line([0,ceil(T)+2],[-pv_max,-pv_max],'linestyle','--','color','k','LineWidth',1);
+
+legend([pt_xopt,pt_yopt,pt_xser,pt_yser,pt_boun],'optimal','optimal','search','search','bound', 'AutoUpdate', 'off','FontSize',12);
+% line([0,ceil(T)+2],[pv_max*bound_rate,pv_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
+% line([0,ceil(T)+2],[-pv_max*bound_rate,-pv_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
 hold off
 set(gcf,'Position', [100, 100, 1300, 700]);
 
@@ -678,38 +767,45 @@ figure (n)
 % subplot(2,3,iter);
 hold on
 pic_title = strcat("angular velocity",datename);
-title(pic_title);
+%title(pic_title);
 tv=0:tstep:(k-1)*tstep;
 tv = tv + Tv0;
-plot(tv,Q_dn, 'b-');
+pt_qopt = plot(tv,Q_dn, 'b-');
 if(QP_PLOT)
     tv=0:tstep:(QP_k-1)*tstep;
-    plot(tv,QPQ_dn, 'b--');
+    pt_qser = plot(tv,QPQ_dn, 'b--');
 end
 t_temp = 0;
-scatter(t_temp+Tv0,Q_dn(1),'*r');
+%scatter(t_temp+Tv0,Q_dn(1),'*r');
 for idx=1:length(ts)
     t_temp = t_temp + ts(idx);
     qdn_idx = ceil(t_temp/tstep);
-    scatter(t_temp+Tv0,Q_dn(qdn_idx),'*r');
+    %scatter(t_temp+Tv0,Q_dn(qdn_idx),'*r');
 end
 %##############################################
 if(QP_PLOT)
     t_temp=0;
-    scatter(t_temp,QPQ_dn(1),'*r');
+    %scatter(t_temp,QPQ_dn(1),'*r');
     for idx=1:length(QP_ts)
         t_temp = t_temp + QP_ts(idx);
         qdn_idx = ceil(t_temp/tstep);
-        scatter(t_temp,QPQ_dn(qdn_idx),'xr');
+        %scatter(t_temp,QPQ_dn(qdn_idx),'xr');
     end
 end
 grid on
-xlim([0 ceil(T)]);
-ylim([floor(min(Q_dn)) ceil(max(Q_dn))]);
-line([0,ceil(T)],[wv_max,wv_max],'linestyle','-','color','k','LineWidth',2);
-line([0,ceil(T)],[-wv_max,-wv_max],'linestyle','-','color','k','LineWidth',2);
-line([0,ceil(T)],[wv_max*bound_rate,wv_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
-line([0,ceil(T)],[-wv_max*bound_rate,-wv_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
+txt = ylabel('angular velocity [rad/s]');
+set(txt, 'Interpreter', 'latex');
+xlabel("time [s]");
+xlim([0 ceil(T)+2]);
+ythold = max([abs(min(QPQ_dn)),abs(max(QPQ_dn))]);
+ylim([-ythold-2 ythold+2]);
+line([0,ceil(T)+2],[wv_max,wv_max],'linestyle','-','color','k','LineWidth',2);
+line([0,ceil(T)+2],[-wv_max,-wv_max],'linestyle','-','color','k','LineWidth',2);
+line([0,ceil(T)+2],[wv_max*bound_rate,wv_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
+line([0,ceil(T)+2],[-wv_max*bound_rate,-wv_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
+
+legend([pt_qopt,pt_qser],'optimal','search'); % 新 plot 的图像会自动添加图例
+
 hold off
 set(gcf,'Position', [100, 100, 1300, 700]);
 
@@ -720,24 +816,28 @@ figure (n)
 % subplot(2,3,iter);
 hold on
 pic_title = strcat("angular position",datename);
-title(pic_title);
+% title(pic_title);
 tv=0:tstep:(k-1)*tstep;
 tv = tv + Tv0;
-plot(tv,rad2deg(Q_n), 'b-');
+pt_qopt = plot(tv,rad2deg(Q_n), 'b-');
 %##############################################
 if(QP_PLOT)
     tv=0:tstep:(QP_k-1)*tstep;
-    plot(tv,rad2deg(QPQ_n), 'b--');
+    pt_qser = plot(tv,rad2deg(QPQ_n), 'b--');
 end
 t_temp = 0;
 path_m = path(:,3);
-scatter(t_temp+Tv0,rad2deg(path_m(1)),'*r');
+%scatter(t_temp+Tv0,rad2deg(path_m(1)),'*r');
 for idx=1:length(ts)
     t_temp = t_temp + ts(idx);
-    scatter(t_temp+Tv0,rad2deg(path_m(idx+1)),'*r');
+    %scatter(t_temp+Tv0,rad2deg(path_m(idx+1)),'*r');
 end
 grid on
-xlim([0 ceil(T)]);
+legend([pt_qopt,pt_qser],'optimal','search','FontSize',12);
+txt = ylabel('yaw angule [deg]');
+set(txt, 'Interpreter', 'latex');
+xlabel("time [s]");
+xlim([0 ceil(T)+2]);
 ylim([-200 200]);
 hold off
 set(gcf,'Position', [100, 100, 1300, 700]);
@@ -749,22 +849,22 @@ figure (n)
 % subplot(2,3,iter);
 hold on
 pic_title = strcat("xy acceleration",datename);
-title(pic_title);
+%title(pic_title);
 tv=0:tstep:(k-1)*tstep;
 tv = tv + Tv0;
-plot(tv,X_ddn, 'r-');
-plot(tv,Y_ddn, 'b-');
+pt_xopt = plot(tv,X_ddn, 'r-');
+pt_yopt = plot(tv,Y_ddn, 'b-');
 if (QP_PLOT)
     tv=0:tstep:(QP_k-1)*tstep;
-    plot(tv,QPX_ddn, 'r--');
-    plot(tv,QPY_ddn, 'b--');
+    pt_xser = plot(tv,QPX_ddn, 'r--');
+    pt_yser = plot(tv,QPY_ddn, 'b--');
 end
 t_temp=0;
 for idx=1:length(ts)
     t_temp = t_temp + ts(idx);
     qdn_idx = ceil(t_temp/tstep);
-    scatter(t_temp+Tv0,X_ddn(qdn_idx),'*r');
-    scatter(t_temp+Tv0,Y_ddn(qdn_idx),'*b');
+    %scatter(t_temp+Tv0,X_ddn(qdn_idx),'*r');
+    %scatter(t_temp+Tv0,Y_ddn(qdn_idx),'*b');
 end
 %##############################################
 if (QP_PLOT)
@@ -772,18 +872,24 @@ if (QP_PLOT)
     for idx=1:length(QP_ts)
         t_temp = t_temp + QP_ts(idx);
         qdn_idx = ceil(t_temp/tstep);
-        scatter(t_temp,QPX_ddn(qdn_idx),'xr');
-        scatter(t_temp,QPY_ddn(qdn_idx),'xb');
+        %scatter(t_temp,QPX_ddn(qdn_idx),'xr');
+        %scatter(t_temp,QPY_ddn(qdn_idx),'xb');
     end
 end
 % legend('x acc','y acc');
 grid on
-xlim([0 ceil(T)]);
-ylim([floor(min(Y_ddn))-2 ceil(max(Y_ddn))+2]);
-line([0,ceil(T)],[pa_max,pa_max],'linestyle','-','color','k','LineWidth',2);
-line([0,ceil(T)],[-pa_max,-pa_max],'linestyle','-','color','k','LineWidth',2);
-line([0,ceil(T)],[pa_max*bound_rate,pa_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
-line([0,ceil(T)],[-pa_max*bound_rate,-pa_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
+txt = ylabel('linear acceleration [m/$s^2$]');
+set(txt, 'Interpreter', 'latex');
+xlabel("time [s]");
+xlim([0 ceil(T)+2]);
+ylim([floor(min(QPY_ddn))-2 ceil(max(QPY_ddn))+2]);
+line([0,ceil(T)+2],[pa_max,pa_max],'linestyle','-','color','k','LineWidth',2);
+line([0,ceil(T)+2],[-pa_max,-pa_max],'linestyle','-','color','k','LineWidth',2);
+line([0,ceil(T)+2],[pa_max*bound_rate,pa_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
+line([0,ceil(T)+2],[-pa_max*bound_rate,-pa_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
+
+legend([pt_xopt,pt_yopt,pt_xser,pt_yser],'optimal','optimal','search','search','FontSize',12);
+
 hold off
 set(gcf,'Position', [100, 100, 1300, 700]);
 
@@ -794,38 +900,51 @@ figure (n)
 % subplot(2,3,iter);
 hold on
 pic_title = strcat("angular acceleration",datename);
-title(pic_title);
+%title(pic_title);
 tv=0:tstep:(k-1)*tstep;
 tv = tv + Tv0;
-plot(tv,Q_ddn, 'b-');
+pt_qopt = plot(tv,Q_ddn, 'b-');
 if (QP_PLOT)
     tv=0:tstep:(QP_k-1)*tstep;
-    plot(tv,QPQ_ddn, 'b--');
+    pt_qser = plot(tv,QPQ_ddn, 'b--');
 end
 t_temp = 0;
-scatter(t_temp+Tv0,Q_ddn(1),'*r');
+%scatter(t_temp+Tv0,Q_ddn(1),'*r');
 for idx=1:length(ts)
     t_temp = t_temp + ts(idx);
     qdn_idx = ceil(t_temp/tstep);
-    scatter(t_temp+Tv0,Q_ddn(qdn_idx),'*r');
+    %scatter(t_temp+Tv0,Q_ddn(qdn_idx),'*r');
 end
 %##############################################
 if (QP_PLOT)
     t_temp=0;
-    scatter(t_temp,Q_ddn(1),'*r');
+    %scatter(t_temp,Q_ddn(1),'*r');
     for idx=1:length(QP_ts)
         t_temp = t_temp + QP_ts(idx);
         qdn_idx = ceil(t_temp/tstep);
-        scatter(t_temp,QPQ_ddn(qdn_idx),'xr');
+        %scatter(t_temp,QPQ_ddn(qdn_idx),'xr');
     end
 end
 grid on
-xlim([0 ceil(T)]);
-ylim([floor(min(Q_ddn)) ceil(max(Q_ddn))]);
-line([0,ceil(T)],[wa_max,wa_max],'linestyle','-','color','k','LineWidth',2);
-line([0,ceil(T)],[-wa_max,-wa_max],'linestyle','-','color','k','LineWidth',2);
-line([0,ceil(T)],[wa_max*bound_rate,wa_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
-line([0,ceil(T)],[-wa_max*bound_rate,-wa_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
+
+txt = ylabel('angular acceleration [rad/$s^2$]');
+set(txt, 'Interpreter', 'latex');
+xlabel("time [s]");
+xlim([0 ceil(T)+2]);
+ylim([floor(min(QPQ_ddn))-2 ceil(max(QPQ_ddn))+2]);
+line([0,ceil(T)+2],[wa_max,wa_max],'linestyle','-','color','k','LineWidth',2);
+line([0,ceil(T)+2],[-wa_max,-wa_max],'linestyle','-','color','k','LineWidth',2);
+line([0,ceil(T)+2],[wa_max*bound_rate,wa_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
+line([0,ceil(T)+2],[-wa_max*bound_rate,-wa_max*bound_rate],'linestyle','--','color','c','LineWidth',1);
+
+legend([pt_qopt,pt_qser],'optimal','search','FontSize',12);
+
 hold off
 set(gcf,'Position', [100, 100, 1300, 700]);
 end %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOT_DEBUG
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% 保存所有变量
+if (SAVE_ALL)
+    save('Alldata.mat')
+end

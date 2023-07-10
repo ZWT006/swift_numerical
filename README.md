@@ -6,113 +6,7 @@ HUST AIA Coralab Aggressive Navigation MATLAB code
 
 #### 代码结构
 ```
-|-- LazyKinoPRM.m
-|-- LazyPRM
-|   |-- AngleCost.m
-|   |-- AngleDelta.m
-|   |-- CloseList.m
-|   |-- CollisionCheck.m
-|   |-- DistanceCost.m
-|   |-- ExpandNode.m
-|   |-- ObstacleCheck.m
-|   |-- OpenList.m
-|   |-- Point.m
-|   |-- TrajectoryCheck.m
-|   `-- insertGoalNode.m
-|-- LocalOBVP
-|   |-- AngleDelta.m
-|   |-- BVP.m
-|   |-- OBVP.m
-|   |-- SampleOBVP.m
-|   |-- formula_compute.mlx
-|   `-- obvp_compute.mlx
-|-- PolyOpt
-|   |-- CostFunc.m
-|   |-- PolyTraj.m
-|   |-- calculate.mlx
-|   |-- dynamicCost.m
-|   |-- getAbeqMatrix.m
-|   |-- getCoeffCons.m
-|   |-- matlabopt.m
-|   |-- memorandum.txt
-|   |-- nloptTO.m
-|   |-- nonConstrain.m
-|   |-- obstacleCost.m
-|   |-- optCoeffs.xlsx
-|   |-- ovalCost.m
-|   |-- sdfMap.m
-|   |-- sdfMapGen.m
-|   |-- smoothCost.m
-|   |-- test.m
-|   `-- timeCost.m
-|-- README.en.md
-|-- README.md
-|-- TrajGener
-|   |-- BerneteinCoeff.m
-|   |-- BezierCurve.m
-|   |-- CartesianPolynomials.m
-|   |-- ChainedForm.m
-|   |-- MinimumPolySolver.m
-|   |-- SegPolyTraj.m
-|   |-- VelocityVector.m
-|   |-- calcu.mlx
-|   |-- calcutest.m
-|   |-- getAMbeq.m
-|   |-- getAMbieq.m
-|   |-- getAbeq.m
-|   |-- getBAbeq.m
-|   |-- getBAbieq.m
-|   |-- getCoeffCons.m
-|   |-- getCt.m
-|   |-- getM.m
-|   |-- getMQM.m
-|   |-- getQ.m
-|   |-- hw1_1.m
-|   |-- hw1_2.m
-|   |-- nearestSPD.m
-|   |-- picture
-|   `-- plotaxis.m
-|-- TrajOpt
-|   |-- BerneteinCoeff.m
-|   |-- BezierCurve.m
-|   |-- SegPolyTraj.m
-|   |-- TrajectoryOpt.m
-|   |-- getAbeq.m
-|   |-- getBAbeq.m
-|   |-- getBAbieq.m
-|   |-- getCoeffCons.m
-|   |-- getM.m
-|   |-- getMQM.m
-|   |-- getQ.m
-|   |-- maptest.m
-|   |-- myconstraint.m
-|   |-- myfunc.m
-|   |-- nearestSPD.m
-|   |-- nloptTO.m
-|   |-- path.mat
-|   |-- sdf_map.png
-|   |-- symscalcu.mlx
-|   `-- test.m
-|-- commond.txt
-|-- map
-|   |-- map0.png
-|   |-- map09.png
-|   |-- map1.png
-|   |-- map2.png
-|   |-- map3.png
-|   |-- map4.png
-|   |-- map5.png
-|   |-- map6.png
-|   |-- map7.png
-|   |-- map8.png
-|   `-- map9.png
-|-- opt_fig.m
-|-- path.mat
-|-- pose_map.mat
-|-- test.m
-|-- test_a_obvp.m
-|-- testblog.txt
-`-- traj_test.m
+
 ```
 
 
@@ -124,6 +18,7 @@ HUST AIA Coralab Aggressive Navigation MATLAB code
 4.  `PolyOpt`   :Nonlinear Trajectory Optimization,主要文件为`matlatopt.m`,进行非线性迭代优化
 5.  `TrajGener` :分段曲线优化,主要文件为`SegPolyTraj.m`,用于**多项式**以及**贝塞尔**曲线优化
 6.  `TrajOpt`   :内容与`TrajGener`类似,不用care
+7.  `documents` :非线性优化公式的数值离散化计算 使用`Mathematica`软件打开`.nb`文件(该软件是一个数学软件,用于符号学公式推导和数值计算)
 
 #### 使用说明
 

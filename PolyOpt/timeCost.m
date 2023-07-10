@@ -21,7 +21,7 @@ if (TimeOptimal)
 %     gradt = T;
     cost = sum(T.^2);
     gradt = 2*T.^2;
-    gradt = gradt(:);
+    gradt = gradt(:); % 转换成列向量
     grad = [grad;gradt];
 end
 

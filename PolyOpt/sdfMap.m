@@ -27,7 +27,7 @@ classdef sdfMap
             dist_transform = bwdist(bw_map);
             D1 = bwdist(bw_map,'euclidean');
             I_norm = mat2gray(dist_transform);
-            cmap = cool;
+            cmap = bone; % autumn; % cool winter bone
             rgb = interp1(linspace(0, 1, 256), cmap, I_norm);
             obj.bw_map = bw_map;
             obj.I_norm = I_norm;
@@ -44,9 +44,9 @@ classdef sdfMap
             imshow(~obj.bw_map);
             hold on;
             im = imshow(obj.rgb.*repmat(~obj.bw_map,[1 1 3]));
-            im.AlphaData = 0.3;
+            im.AlphaData = 0.2;
             imcontour(obj.D1);
-            title('Euclidean SDF Map');
+%             title('Euclidean SDF Map');
             axis on
             grid on
             axis equal
@@ -57,6 +57,7 @@ classdef sdfMap
             %getDistAndGrad 获取[xpos,ypos] 点的SDF信息和Grad信息
             xpos = xpos * obj.RATION; ypos = ypos * obj.RATION;
             xpos = floor(xpos); ypos = floor(ypos);
+            % 这里比较地图大小的BUG x,y好像反了
             if (xpos<=0) 
                 xpos=2;end
             if (ypos<=0) 
@@ -83,6 +84,9 @@ classdef sdfMap
 %             end
             xgrad = sum((distx-dist));
             ygrad = sum((disty-dist));
+            % BUG 好像这里求梯度还得除以分辨率?
+            % BUG 这里的梯度方向好像不对呀??? 是不是应该顺序依次相减?
+            % 这个距离场的梯度绝对是错的
             dist = dist * obj.resolution; % 分辨率转化
         end
     end
