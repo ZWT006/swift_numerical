@@ -11,12 +11,18 @@ if (start < 0)
 end % % 按周期转化为0~2pi
 delta = goal - start;
 % 有方向的转换
-if (abs(delta) > pi)
-    if (delta > 0) % -0 ~ -180
-        delta = delta - 2*pi;
-    else % +0 ~ +180
-        delta = delta + 2*pi;
+if(numel(delta) > 1)
+    delta(delta > pi) = delta(delta > pi) - 2 * pi; % -0 ~ -180
+    delta(delta < -pi) = delta(delta < -pi) + 2 * pi; % +0 ~ +180
+else
+    if (abs(delta) > pi)
+        if (delta > 0) % -0 ~ -180
+            delta = delta - 2*pi;
+        else % +0 ~ +180
+            delta = delta + 2*pi;
+        end
     end
 end
 end
+
 

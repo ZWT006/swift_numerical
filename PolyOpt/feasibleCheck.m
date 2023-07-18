@@ -148,10 +148,12 @@ if (CHECK_PLOT)
     fprintf("obsCheck: whole count =%5d; near bound count =%5d; unfeasible count =%5d \n",obstacle_all,bd_obstacle_count,obstacle_count);
     fprintf("ovaCheck: whole count =%5d; near bound count =%5d; unfeasible count =%5d \n",oval_all,bd_oval_count,oval_count);
     fprintf("dynCheck: whole count =%5d; \n",dynamic_all);
-    fprintf("dynCheck vel unfeasible count : x =%5d; y =%5d; q =%5d; \n",dynamic_vel_count(1),dynamic_vel_count(2),dynamic_vel_count(3));
-    fprintf("dynCheck vel near bound count : x =%5d; y =%5d; q =%5d; \n",bd_dynamic_vel_count(1),bd_dynamic_vel_count(2),bd_dynamic_vel_count(3));
-    fprintf("dynCheck acc unfeasible count : x =%5d; y =%5d; q =%5d; \n",dynamic_acc_count(1),dynamic_acc_count(2),dynamic_acc_count(3));
-    fprintf("dynCheck acc near bound count : x =%5d; y =%5d; q =%5d; \n",bd_dynamic_acc_count(1),bd_dynamic_acc_count(2),bd_dynamic_acc_count(3));
+    fprintf("dynCheck vel Maximum state    : x =%1.4f; y =%1.4f; q =%1.4f; \n",pv_max,pv_max,wv_max);
+    fprintf("dynCheck vel unfeasible count : x =%6d; y =%6d; q =%6d; \n",dynamic_vel_count(1),dynamic_vel_count(2),dynamic_vel_count(3));
+    fprintf("dynCheck vel near bound count : x =%6d; y =%6d; q =%6d; \n",bd_dynamic_vel_count(1),bd_dynamic_vel_count(2),bd_dynamic_vel_count(3));
+    fprintf("dynCheck acc Maximum state    : x =%1.4f; y =%1.4f; q =%1.4f; \n",pa_max,pa_max,wa_max);
+    fprintf("dynCheck acc unfeasible count : x =%6d; y =%6d; q =%6d; \n",dynamic_acc_count(1),dynamic_acc_count(2),dynamic_acc_count(3));
+    fprintf("dynCheck acc near bound count : x =%6d; y =%6d; q =%6d; \n",bd_dynamic_acc_count(1),bd_dynamic_acc_count(2),bd_dynamic_acc_count(3));
 end
 
 end

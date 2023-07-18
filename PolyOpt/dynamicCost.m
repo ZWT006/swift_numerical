@@ -39,8 +39,8 @@ pa_max = dynamic_rate * segpoly.pa_max;
 wv_max = dynamic_rate * segpoly.wv_max;
 wa_max = dynamic_rate * segpoly.wa_max;
 
-velth = [pv_max,pv_max,wv_max];
-accth = [pa_max,pa_max,wa_max];
+% velth = [pv_max,pv_max,wv_max];
+% accth = [pa_max,pa_max,wa_max];
 
 for idi = 1:n_seg
     [pos,vel,acc] = polytraj.getStates(idi);
@@ -186,7 +186,7 @@ for idi = 1:n_seg
             agradt = agradt + 2 * delacc * dotjer' * idi * Tdt; % 自然数对数的导数为自身
         end
     end % grad的计算
-    cost = cost + velcost;% + acccost;
+    cost = cost + velcost + acccost;
     % 这个梯度有问题呀,添加后就报错：Converged to an infeasible point
     grad((idi-1)*dim*n_order + 1:((idi-1)*dim+1)*n_order)     = xvgrad;% + xagrad;
     grad(((idi-1)*dim+1)*n_order + 1:((idi-1)*dim+2)*n_order) = yvgrad;% + yagrad;

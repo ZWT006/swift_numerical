@@ -9,7 +9,7 @@
 load("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\Alldata.mat")
 close all
 fpnum = 9;
-FoitSizeNum = 16;
+FoitSizeNum = 28;
 GRID_SWITCH = 'on';
 BOX_SWITCH = 'on';
 %% xy position
@@ -168,7 +168,7 @@ ythold = max([abs(min(QPQ_ddn)),abs(max(QPQ_ddn)),abs(min(Q_ddn)),abs(max(Q_ddn)
 ylim([-ythold-4 ythold+4]);
 legend([pt_qopt,pt_qser,pt_boun],{'optimal','search','bound'}, 'AutoUpdate', 'off');
 set(gca,'FontName','Times New Roman','FontSize',FoitSizeNum);
-set(gca,'xticklabel',[])
+% set(gca,'xticklabel',[])
 box(BOX_SWITCH)
 grid(GRID_SWITCH)
 

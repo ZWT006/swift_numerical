@@ -61,6 +61,11 @@ if (DEBUG_PRINT)
 %     grad = lambda_smooth*smograd + lambda_obstacle*obsgrad + lambda_dynamic*dyngrad + lambda_time*timgrad + lambda_oval*ovagrad;
 end
 
+% filename = "E:\datas\Swift\Optimization\NLoptCostGradNoTime.csv";
+% TRAJ_DATA = [[smoCost;0;smograd], [obsCost;0;obsgrad], [dynCost;0;dyngrad], [timCost;0;timgrad], [ovaCost;0;ovagrad]];
+% TRAJ_DATA = round(TRAJ_DATA,4);
+% writematrix(TRAJ_DATA,filename);
+
 if(DEBUG_PLOT)
 global iter costArray;
 iter = iter + 1;

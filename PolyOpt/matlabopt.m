@@ -44,23 +44,23 @@ path(:,1)=path(:,1)/RATION;
 path(:,2)=path(:,2)/RATION;
 
 %##########################################################################
-% 角度平滑性处理,与LazyKinoPRM中作用
-[path_length,~]=size(path);
-path_m=zeros(path_length,1);
-for idx = 1:path_length-2
-    temp_angle=AngleDelta(path(idx+1,3),path(idx+2,3))/2+path(idx+1,3);
-    if (abs(temp_angle)>pi)
-        if (temp_angle < -pi)
-            temp_angle = 2*pi+temp_angle;
-        else
-            temp_angle = -2*pi+temp_angle;
-        end
-    end
-    path_m(idx+1)=temp_angle;
-end
-path_m(1)=path(1,3);
-path_m(end)=path(end,3);
-path(:,3)=path_m;
+% 角度平滑性处理,与LazyKinoPRM中作用相同
+% [path_length,~]=size(path);
+% path_m=zeros(path_length,1);
+% for idx = 1:path_length-2
+%     temp_angle=AngleDelta(path(idx+1,3),path(idx+2,3))/2+path(idx+1,3);
+%     if (abs(temp_angle)>pi)
+%         if (temp_angle < -pi)
+%             temp_angle = 2*pi+temp_angle;
+%         else
+%             temp_angle = -2*pi+temp_angle;
+%         end
+%     end
+%     path_m(idx+1)=temp_angle;
+% end
+% path_m(1)=path(1,3);
+% path_m(end)=path(end,3);
+% path(:,3)=path_m;
 %##########################################################################
 [n_seg,~]=size(path);
 n_seg = n_seg - 1;
@@ -68,9 +68,9 @@ n_seg = n_seg - 1;
 Vel_factor = 1.4; % reference Linear Velocity  2m/s
 W_factor   = 1.4; % reference Angular Velocity rad/s
 pv_max = Vel_factor*1.5;
-pa_max = Vel_factor*6;
+pa_max = Vel_factor*1.5;
 wv_max = W_factor*1.5;
-wa_max = W_factor*6;
+wa_max = W_factor*1.5;
 % Vel_factor = 1.8; % reference Linear Velocity  2m/s
 % W_factor   = 1.8; % reference Angular Velocity rad/s
 % 二次优化 dynamic limit
@@ -223,42 +223,42 @@ QP_k=QP_k-1;
 %%%% 选择参考轨迹是 search 还是 QP
 OBVP_PLOT  = true;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if (OBVP_PLOT)
-    QPX_n = [];
-    QPY_n = [];
-    QPQ_n = [];
-    QPX_dn = [];
-    QPY_dn = [];
-    QPQ_dn = [];
-    QPX_ddn = [];
-    QPY_ddn = [];
-    QPQ_ddn = [];
-    QP_k=1;
-    for idx=0:n_seg-1
-        obvptemp = path_obvp(n_seg-idx);
-        [xt,yt,qt] = obvptemp.st();
-        [len,~] = size(xt);
-        for t = 1:len
-            % Quadratic Optimization ##########################################
-
-            QPX_n(QP_k)  = xt(t,1)*RATION;
-            QPY_n(QP_k)  = yt(t,1)*RATION;
-            QPQ_n(QP_k)  = qt(t,1);
-            % velocity
-
-            QPX_dn(QP_k)  = xt(t,2);
-            QPY_dn(QP_k)  = yt(t,2);
-            QPQ_dn(QP_k)  = qt(t,2);
-            % accelaration
-
-            QPX_ddn(QP_k)  = xt(t,3);
-            QPY_ddn(QP_k)  = yt(t,3);
-            QPQ_ddn(QP_k)  = qt(t,3);
-            QP_k=QP_k+1;
-        end
-    end
-    QP_k=QP_k-1;
-end
+% if (OBVP_PLOT)
+%     QPX_n = [];
+%     QPY_n = [];
+%     QPQ_n = [];
+%     QPX_dn = [];
+%     QPY_dn = [];
+%     QPQ_dn = [];
+%     QPX_ddn = [];
+%     QPY_ddn = [];
+%     QPQ_ddn = [];
+%     QP_k=1;
+%     for idx=0:n_seg-1
+%         obvptemp = path_obvp(n_seg-idx);
+%         [xt,yt,qt] = obvptemp.st();
+%         [len,~] = size(xt);
+%         for t = 1:len
+%             % Quadratic Optimization ##########################################
+% 
+%             QPX_n(QP_k)  = xt(t,1)*RATION;
+%             QPY_n(QP_k)  = yt(t,1)*RATION;
+%             QPQ_n(QP_k)  = qt(t,1);
+%             % velocity
+% 
+%             QPX_dn(QP_k)  = xt(t,2);
+%             QPY_dn(QP_k)  = yt(t,2);
+%             QPQ_dn(QP_k)  = qt(t,2);
+%             % accelaration
+% 
+%             QPX_ddn(QP_k)  = xt(t,3);
+%             QPY_ddn(QP_k)  = yt(t,3);
+%             QPQ_ddn(QP_k)  = qt(t,3);
+%             QP_k=QP_k+1;
+%         end
+%     end
+%     QP_k=QP_k-1;
+% end
 
 %Step2: 根据选择分段重置path/ts/start_cond/goal_cond
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -295,7 +295,7 @@ segpoly.DEBUG_PLOT  = true;
 segpoly.TIME_PRINT  = false;
 segpoly.CHECK_PLOT  = true;
 %%%%%%%%%%%%% GLOBAL DEFINE
-PLOT_DEBUG = false;
+PLOT_DEBUG = true;
 QP_PLOT    = true;
 FEASIBLE_CHECK = true;
 OPT_CLOCK  = true;
@@ -323,11 +323,11 @@ ConstantBounds    = true;
 % 梯度检查选项 正常求解关闭
 CheckGradients    = false;
 % ReduceDOF
-ReduceOptimalValue = false;
+ReduceOptimalValue = true;
 % 求解器选择 ###############################################################
 MATLAB_SOLVER = 1;
 NLOPT_SOLVER  = 2;
-OPT_SOLVER = NLOPT_SOLVER;
+OPT_SOLVER = MATLAB_SOLVER;
 %##########################################################################
 if (OPT_SOLVER == NLOPT_SOLVER)
     ReduceOptimalValue = true;
@@ -338,14 +338,14 @@ segpoly.dt = 0.05; % 时间分辨率
 segpoly.d_th = 0.5; % 距离代价的阈值
 % 几种cost的权重
 segpoly.lambda_smooth = 0.1;        % default 1     0.1
-segpoly.lambda_obstacle =1;%0.01;   % default 0.01  1       1
+segpoly.lambda_obstacle =1.0;%0.01;   % default 0.01  1       1
 segpoly.lambda_dynamic = 10;%500;   % default 500   1       10
 segpoly.lambda_time = 8000;%3000;   % default 2000  8000    
 segpoly.lambda_oval = 0;%10;       % default 10
 % oval cost 和 oval constrain 选择一个起作用即可
-segpoly.switch_ovalcon = true;
+segpoly.switch_ovalcon = false;
 % Nonlinear equality Constrain
-segpoly.switch_equacon = true;
+segpoly.switch_equacon = false;
 % Using Equality Constrain Reduce Optimization DOF 
 segpoly.ReduceOptimalValue  = ReduceOptimalValue;
 

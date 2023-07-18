@@ -189,7 +189,6 @@ classdef PolyTraj
                     idg = sum(obj.bars(1:seg)) + seg;
                     ids = idg - obj.bars(seg);
                     jer(ids:idg,:) = states;
-
                 end
             elseif(nargin == 2) % 选择seg 只返回对应seg的pos
                 if (seg > obj.n_seg)
@@ -213,11 +212,11 @@ classdef PolyTraj
                 if (dof_num >= segpoly.dof)
                     break;
                 end
-                for id_order=segpoly.ninput+2:segpoly.norder
+                for id_dim = 0:segpoly.Dim-1
                     if (dof_num >= segpoly.dof)
                         break;
                     end
-                    for id_dim = 0:segpoly.Dim-1
+                    for id_order=segpoly.ninput+2:segpoly.norder
                         row_I = zeros(1,obj.coeffl); % row 向量
                         % 当前优化变量的行序号
                         row_num = id_seg*segpoly.Dim*segpoly.norder + id_dim*segpoly.norder + id_order;
@@ -241,11 +240,11 @@ classdef PolyTraj
                 if (dof_num >= segpoly.dof)
                     break;
                 end % 5~8 阶次系数
-                for id_order=segpoly.ninput+2:segpoly.norder
+                for id_dim = 0:segpoly.Dim-1
                     if (dof_num >= segpoly.dof)
                         break;
                     end
-                    for id_dim = 0:segpoly.Dim-1
+                    for id_order=segpoly.ninput+2:segpoly.norder
                         row_I = zeros(1,obj.coeffl); % row 向量
                         % 当前优化变量的行序号
                         row_num = id_seg*segpoly.Dim*segpoly.norder + id_dim*segpoly.norder + id_order;
@@ -275,11 +274,11 @@ classdef PolyTraj
                 if (dof_num >= obj.dof)
                     break;
                 end % 5~8 阶次系数
-                for id_order=obj.ninput+2:obj.nodr
+                for id_dim = 0:obj.Dim-1
                     if (dof_num >= obj.dof)
                         break;
                     end
-                    for id_dim = 0:obj.Dim-1
+                    for id_order=obj.ninput+2:obj.nodr
                         % 当前优化变量的行序号
                         row_num = id_seg*obj.Dim*obj.nodr + id_dim*obj.nodr + id_order;
                         dof_num = dof_num + 1;
@@ -424,7 +423,7 @@ state(tl,3) = 0;
         xstate = M*xc;
         ystate = M*yc;
         qstate = M*qc;
-        state(tl,:)=[xstate(4),ystate(4),qstate(4)];
+        state(i,:)=[xstate(4),ystate(4),qstate(4)];
     end
 end
 %% 针对矩阵进行操作 插入行

@@ -2,6 +2,8 @@
 #include <cmath>
 #include <vector>
 
+// 与实际的 exp() 和 log() 函数相比，这里的 expC2() 和 logC2() 函数
+// 曲线精度差别巨大 不明白为啥要这样用 时间感觉差了一倍
 static double expC2(double t) {
   return t > 0.0 ? ((0.5 * t + 1.0) * t + 1.0)
                  : 1.0 / ((0.5 * t - 1.0) * t + 1.0);

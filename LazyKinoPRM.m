@@ -29,7 +29,7 @@ SEARCH_DEBUG = false;
 PLOT_DEBUG = true;
 
 % 打印路径的状态信息,速度,加速度等
-OBVP_DEBUG = true;
+OBVP_DEBUG = false;
 
 % 固定采样点,观察obvp效果
 ESTEND_FLAG = false;
@@ -120,13 +120,15 @@ set(gca,'Ydir','normal');
 if (mapaddress == "map4.png" || mapaddress == "map5.png" || ...
     mapaddress == "map9.png" || mapaddress == "map10.png")
 %     Point_i=[50,50,deg2rad(45)];
-    Point_i=[200,280,deg2rad(90)];
+%     Point_i=[200,280,deg2rad(90)];
 %     Point_i=[540,340,deg2rad(45)];
+    Point_i=[200,450,deg2rad(90)];
 
 %     Point_f=[935,580,deg2rad(-45)];
 %     Point_f=[942,542,deg2rad(135)];
 %     Point_f=[1153,145,deg2rad(45)];
-    Point_f=[200,200,deg2rad(-45)];
+%     Point_f=[200,200,deg2rad(-45)];
+    Point_f=[300,550,deg2rad(0)];
 
 %     Point_i=[535,250,deg2rad(45)];
 %     Point_f=[1000,100,deg2rad(-45)];

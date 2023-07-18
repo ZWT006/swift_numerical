@@ -49,8 +49,8 @@ for idx = 1:vel_length
     plot([0,oval_vel(idx,1)],[0,oval_vel(idx,2)],'c-');
 end
 plot(oval_vel(:,1),oval_vel(:,2),'b-');
-plot([0,UNIT_A*cos(yaw)],[0,UNIT_A*sin(yaw)],'r-','LineWidth',2);
-plot([0,UNIT_B*cos(yaw+pi/2)],[0,UNIT_B*sin(yaw+pi/2)],'g-','LineWidth',2);
+% plot([0,UNIT_A*cos(yaw)],[0,UNIT_A*sin(yaw)],'r-','LineWidth',2);
+% plot([0,UNIT_B*cos(yaw+pi/2)],[0,UNIT_B*sin(yaw+pi/2)],'g-','LineWidth',2);
 % title('oval velocity vector');
 % xlabel("x velocity");
 % ylabel("y velocity");

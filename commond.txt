@@ -24,4 +24,7 @@ print -depsc2 kinolazyPRM_2.eps
 print -depsc2 kinolazyPRM_3.eps
 
 # 保存指定fig为指定类型与名称的文件
-print(figure(2),'nontrajopt_000.eps','-depsc')
+print(figure(9),'nontrajopt_0.eps','-depsc')
+print(figure(10),'nontrajopt_1.eps','-depsc')
+print(figure(11),'nontrajopt_2.eps','-depsc')
+print(figure(12),'nontrajopt_3.eps','-depsc')

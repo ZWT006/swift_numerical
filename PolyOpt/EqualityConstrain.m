@@ -1,3 +1,4 @@
+% load("path.mat")
 [n_seg,~]=size(path);
 n_seg = n_seg - 1;
 %Step2: 根据选择分段重置path/ts/start_cond/goal_cond
@@ -75,6 +76,8 @@ upb  = polytraj.getReduceOptVelue(upb);
 [Re_Aeq,Re_beq] = polytraj.SolveAeqbeq(x00,segpoly);
 [Aeq, beq] = getAbeqMatrix([],segpoly);
 
+% 计算 TimeMat
+
 fprintf("Optimal Problem DOF = %4d \n",segpoly.dof);
 
 rank_Aeq = rank(Aeq);
@@ -92,33 +95,13 @@ fprintf("rank of Reduce beq = %4d \n",rank_Re_Aeq_beq);
 % 不同求解方法
 fprintf("linsolve \n");
 test_coeffs = linsolve(Re_Aeq,Re_beq);
-fprintf("inv solve \n");
+fprintf("inv solve \n");    %%%%%%%%%% 广义逆求解
 inv_coeffs = pinv(Re_Aeq)*Re_beq;
-fprintf("div solve \n");
+fprintf("div solve \n");    %%%%%%%%%% 矩阵除法求解
 div_coeffs = Re_Aeq\Re_beq;
 fprintf("LU solve \n");
 [Aeq_L,Aeq_U] = lu(Re_Aeq);
-figure(1)
-subplot(1,3,1)
-spy(Aeq_L)
-title('L factor')
-subplot(1,3,2)
-spy(Aeq_U)
-title('U factor')
-subplot(1,3,3)
-spy(Re_Aeq)
-title('A factor')
 
-figure(2)
-spy(Re_Aeq)
-title('Re_Aeq')
-
-% LU_coeffs = 
-
-% lu_solver = luSolver(Re_Aeq,Re_beq,50,50);
-% lu_solver = lu_solver.factorizeLU();
-% lu_solver = lu_solver.Solve();
-% LU_coeffs = lu_solver.x;
 
 % 求解 coeffs 的 A*x=b 结果偏差
 fprintf("Equality Constrain bias:\n");
@@ -179,3 +162,47 @@ fprintf("DIV coeffs bias: %6.4f\n",test_bias_sqr);
 % test_bias = test_coeffs-LU_coeffs;
 % test_bias_sqr = sum(test_bias.^2);
 % fprintf("LU coeffs bias: %6.4f\n",test_bias_sqr);
+
+%%%%% 保存 Trajectory 为 .csv 文件
+
+TRAJ_DATA = [path,[ts;0]];
+filename = "E:\datas\Swift\Optimization\WAYPOINTS.csv";
+TRAJ_DATA = round(TRAJ_DATA,4);
+writematrix(TRAJ_DATA,filename);
+
+filename = "E:\datas\Swift\Optimization\COEFFS.csv";
+TRAJ_DATA = [poly_coef_x_seg,poly_coef_y_seg,poly_coef_q_seg];
+TRAJ_DATA = round(TRAJ_DATA,4);
+writematrix(TRAJ_DATA,filename);
+
+filename = "E:\datas\Swift\Optimization\REAEQBEQ.csv";
+TRAJ_DATA = [Re_Aeq,Re_beq];
+TRAJ_DATA = round(TRAJ_DATA,4);
+writematrix(TRAJ_DATA,filename);
+
+filename = "E:\datas\Swift\Optimization\AEQBEQ.csv";
+TRAJ_DATA = [Aeq, beq];
+TRAJ_DATA = round(TRAJ_DATA,4);
+writematrix(TRAJ_DATA,filename);
+
+filename = "E:\datas\Swift\Optimization\SOLVECOEFFS.csv";
+TRAJ_DATA = [segpoly.coeffs,test_coeffs,inv_coeffs,div_coeffs];
+TRAJ_DATA = round(TRAJ_DATA,4);
+writematrix(TRAJ_DATA,filename);
+
+
+% 设定符               字段分隔符
+% 
+% ','     'comma'     逗号。这是默认行为。
+% 
+% ' '     'space'     空格
+% 
+% '\t'    'tab'       制表符
+% 
+% ';'     'semi'      分号
+% 
+% '|'     'bar'       垂直条
+% 
+% eg: 'Delimiter','space'
+
+% TRAJ_DATA_READ = readmatrix("TRAJ_DATA.csv");
