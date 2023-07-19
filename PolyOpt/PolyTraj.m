@@ -45,7 +45,8 @@ classdef PolyTraj
             obj.ds = segpoly.ds;
             obj.dt = segpoly.dt;
             obj.dists = segpoly.dists;
-            obj.bars = round(obj.dists./obj.ds);
+            obj.bars = ceil(obj.dists./obj.ds);
+%             obj.bars = round(obj.dists./obj.ds);
             obj.dotl = sum(obj.bars) + obj.n_seg;
             obj.coeffl = segpoly.coeffl;
             obj.d_th = segpoly.d_th;

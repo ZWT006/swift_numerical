@@ -13,6 +13,13 @@ TimeOptimal = segpoly.TimeOptimal;
 
 % 等式约束降维选项
 ReduceOptimalValue = segpoly.ReduceOptimalValue;
+%%%%%%%%%%%%%%%%%%% //Debug: 保存数据
+if isfield(segpoly,'SAVE_DATA')
+    SAVE_DATA = segpoly.SAVE_DATA;
+else
+    SAVE_DATA = false;
+end
+gdova = [];
 
 if (TimeOptimal)
     ts = coeffs(end-n_seg + 1:end); % 最后的n_seg个变量是tau
@@ -37,14 +44,14 @@ gradt = zeros(n_seg,1);
 
 for idi = 1:n_seg
     [pos,vel,acc] = polytraj.getStates(idi);
-    Tdt = polytraj.bardt(n_seg);
+    Tdt = polytraj.bardt(idi);
     xgrad = zeros(n_order,1);
     ygrad = zeros(n_order,1);
     qgrad = zeros(n_order,1);
     for idj = 0:polytraj.bars(idi)
         vel_I = vel(idj+1,1:2); % 惯性系下的速度
         acc_I = acc(idj+1,1:2); % 惯性系下的加速度
-        Mt = getCoeffCons(idi*Tdt,n_order,4);
+        Mt = getCoeffCons(idj*Tdt,n_order,4);
         vect1 = Mt(1,:);
         vect2 = Mt(2,:);
         yaw = pos(idj+1,3);
@@ -60,7 +67,7 @@ for idi = 1:n_seg
 % \end{array} \right\} 
             gradt(idi) = gradt(idi) + ...
                 (2*vel_B(2)*(acc_B(2) - cos(yaw)*vel(1)*vel(3) - sin(yaw)*vel(2)*vel(3))/VERDIT_VEL^2 + ...
-                2*vel_B(1)*(acc_B(1) - sin(yaw)*vel(1)*vel(3) + cos(yaw)*vel(2)*vel(3))/ORIEN_VEL^2) * idi * Tdt;
+                2*vel_B(1)*(acc_B(1) - sin(yaw)*vel(1)*vel(3) + cos(yaw)*vel(2)*vel(3))/ORIEN_VEL^2) * idj * Tdt;
 % \left\{ \begin{array}{c}
 % 	\frac{2\cos\mathrm{(}q(t))(\mathrm{vx(}t)\cos\mathrm{(}q(t))+\mathrm{vy(}t)\sin\mathrm{(}q(t)))}{\mathrm{vela}}-\frac{2\sin\mathrm{(}q(t))(\mathrm{vy(}t)\cos\mathrm{(}q(t))-\mathrm{vx(}t)\sin\mathrm{(}q(t)))}{\mathrm{velb}}\\
 % 	\frac{2\sin\mathrm{(}q(t))(\mathrm{vx(}t)\cos\mathrm{(}q(t))+\mathrm{vy(}t)\sin\mathrm{(}q(t)))}{\mathrm{vela}}+\frac{2\cos\mathrm{(}q(t))(\mathrm{vy(}t)\cos\mathrm{(}q(t))-\mathrm{vx(}t)\sin\mathrm{(}q(t)))}{\mathrm{velb}}\\
@@ -76,11 +83,29 @@ for idi = 1:n_seg
         else
 %             cost = cost + 0;
         end
+        %%%% ////Debug: [Tdt vel_B(1) vel_B(2) vel_B2 yaw R(1,1) R(1,2) R(2,1) R(2,2) gradt xgrad ygrad qgrad]
+        gdova = [gdova;idj * Tdt,vel_B(1),vel_B(2),vel_B2,yaw,Rmatrix(1,1),Rmatrix(1,2),Rmatrix(2,1),Rmatrix(2,2),...
+                (2*vel_B(2)*(acc_B(2) - cos(yaw)*vel(1)*vel(3) - sin(yaw)*vel(2)*vel(3))/VERDIT_VEL^2 + ...
+                 2*vel_B(1)*(acc_B(1) - sin(yaw)*vel(1)*vel(3) + cos(yaw)*vel(2)*vel(3))/ORIEN_VEL^2),...
+                (2*cos(yaw)*vel_B(1)/ORIEN_VEL^2 - 2*sin(yaw)*vel_B(2)/VERDIT_VEL^2),...
+                (2*sin(yaw)*vel_B(1)/ORIEN_VEL^2 + 2*cos(yaw)*vel_B(2)/VERDIT_VEL^2),...
+                (2*vel_B(1)*vel_B(2)/ORIEN_VEL^2 + 2*(-vel_B(1))*vel_B(2)/VERDIT_VEL^2)];
     end
     grad((idi-1)*dim*n_order + 1:((idi-1)*dim+1)*n_order)     = xgrad;
     grad(((idi-1)*dim+1)*n_order + 1:((idi-1)*dim+2)*n_order) = ygrad;
     grad(((idi-1)*dim+2)*n_order + 1:((idi-1)*dim+3)*n_order) = qgrad;
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% save debug data
+if (SAVE_DATA)
+    filename = "E:\datas\Swift\Debug\MATLABgdova.csv";
+    TRAJ_DATA = gdova;
+    TRAJ_DATA = round(TRAJ_DATA,6);
+    writematrix(TRAJ_DATA,filename);
+    fprintf("save gdova debug datas, 上天保佑 \n");
+end
+
 if(ReduceOptimalValue)
     grad = segpoly.traj.getReduceOptVelue(grad);
 end

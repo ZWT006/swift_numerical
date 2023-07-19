@@ -71,7 +71,7 @@ classdef sdfMap
 %             fprintf("xpos=%d,ypos=%d\n",xpos,ypos);
             distx=zeros(2,1);disty=zeros(2,1);
             if(isnan(xpos) || isnan(ypos))
-                dist = 0;
+                dist = 0.01;
             else
                 dist = obj.dist_transform(ypos+1,xpos+1);
                 distx(1) = obj.dist_transform(ypos+1,xpos);
@@ -82,13 +82,16 @@ classdef sdfMap
 %             if (dist) < 0.0001
 %                 dist = 99999;
 %             end
+            dist = dist * obj.resolution + 0.01; % 分辨率转化
+            distx = distx * obj.resolution + 0.01;
+            disty = disty * obj.resolution + 0.01;
             %%%% fix grad bug
-            xgrad = sum((dist-distx(1) + distx(2)-dist))/2.0;
-            ygrad = sum((dist-disty(1) + disty(2)-dist))/2.0;
+            xgrad = (dist-distx(1) + distx(2)-dist)/2.0/obj.resolution;
+            ygrad = (dist-disty(1) + disty(2)-dist)/2.0/obj.resolution;
             % BUG 好像这里求梯度还得除以分辨率?
             % BUG 这里的梯度方向好像不对呀??? 是不是应该顺序依次相减?
             % 这个距离场的梯度绝对是错的
-            dist = dist * obj.resolution; % 分辨率转化
+            
         end
     end
 end

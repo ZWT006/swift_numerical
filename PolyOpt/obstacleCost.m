@@ -13,6 +13,13 @@ n_order = segpoly.norder;
 TimeOptimal = segpoly.TimeOptimal;
 % 等式约束降维选项
 ReduceOptimalValue = segpoly.ReduceOptimalValue;
+%%%%%%%%%%%%%%%%%%% //Debug: 保存数据
+if isfield(segpoly,'SAVE_DATA')
+    SAVE_DATA = segpoly.SAVE_DATA;
+else
+    SAVE_DATA = false;
+end
+gdobs = [];
 
 if (TimeOptimal)
     ts = coeffs(end-n_seg + 1:end); % 最后的n_seg个变量是tau
@@ -38,7 +45,7 @@ PLOT_OBS = false;
 
 for idi = 1:n_seg
     [pos,vel,acc] = polytraj.getStates(idi);
-    Tdt = polytraj.bardt(n_seg);
+    Tdt = polytraj.bardt(idi);
     xgrad = zeros(segpoly.norder,1);
     ygrad = zeros(segpoly.norder,1);
     xgradt = 0; ygradt = 0;
@@ -51,10 +58,10 @@ for idi = 1:n_seg
 %         fprintf("dotxgrad=%2.4f; dotygrad=%2.4f\n",dotxgrad,dotygrad);
         if (dotdist < d_th ) % 超过阈值才计算cost %|| dotdist > 99
             % 使用倒数计算使曲线光滑
-            veccost = veccost + 1/(2*(dotdist+0.01))^2 * (dotvel(1)^2+dotvel(2)^2) * Tdt;
+            veccost = veccost + 1/(2*(dotdist))^2 * (dotvel(1)^2+dotvel(2)^2) * Tdt;
             tvec = polytraj.getTvec(idj*Tdt);
-            xgrad = xgrad + dotxgrad * tvec' * (-2*(dotdist+0.01)^3);
-            ygrad = ygrad + dotygrad * tvec' * (-2*(dotdist+0.01)^3);
+            xgrad = xgrad + dotxgrad * tvec' * (-2*(dotdist)^3);
+            ygrad = ygrad + dotygrad * tvec' * (-2*(dotdist)^3);
             % 感觉sdf对时间的偏导数是0呀
 %             if (TimeOptimal)
 %                 xgradt = xgradt + dotxgrad * vel(1) * idj*Tdt * (-2*(dotdist+0.01)^3);
@@ -74,6 +81,8 @@ for idi = 1:n_seg
                 fprintf("obstacleCost in obstacle\n");
             end
         end
+        %%%% //[xpos ypos dist xgrad ygrad Tdt cost]
+        gdobs = [gdobs;dotpos(1),dotpos(2),dotdist,dotxgrad,dotygrad,idj*Tdt, 1/(2*(dotdist+0.01))^2 * (dotvel(1)^2+dotvel(2)^2) * Tdt];
     end
     cost = cost + veccost;
     grad((idi-1)*dim*n_order + 1:((idi-1)*dim+1)*n_order) = xgrad;
@@ -81,6 +90,19 @@ for idi = 1:n_seg
     % gradt 直接置零
     gradt(idi) = xgradt + ygradt;
 end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% save debug data
+if (SAVE_DATA)
+    filename = "E:\datas\Swift\Debug\MATLABgdobs.csv";
+    TRAJ_DATA = gdobs;
+    TRAJ_DATA = round(TRAJ_DATA,6);
+    writematrix(TRAJ_DATA,filename);
+    fprintf("save gdobs debug datas, 上天保佑 \n");
+end
+
+
 if(ReduceOptimalValue)
     grad = segpoly.traj.getReduceOptVelue(grad);
 end

@@ -6,7 +6,7 @@ addpath("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\LazyPRM\");
 % for QP solver
 addpath("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\TrajGener\");
 
-SAVE_CSV = false;
+SAVE_CSV = true;
 
 %%%% 计算每段的时间
 RATION = 100;
@@ -73,7 +73,7 @@ QPdynamiclimit = true;
 OP_structure.QP_inequality = QPdynamiclimit;
 
 %%%% QP 
-fprintf("=============================quadprog===================================");
+fprintf("=============================quadprog===================================\n");
 OP_structure.v_max = pv_max;
 OP_structure.a_max = pa_max;
 poly_coef_x = MinimumPolySolver(path(:, 1), ts, n_seg, n_order, n_costorder, n_inputorder,OP_structure);
@@ -84,6 +84,9 @@ OP_structure.v_max = wv_max;
 OP_structure.a_max = wa_max;
 poly_coef_q = MinimumPolySolver(path(:, 3), ts, n_seg, n_order, n_costorder, n_inputorder,OP_structure);
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% 等式约束的线性方程组 rank秩 / eig特征值 问题
 MatQ = [];
 ER = eye(n_order+1)*0.8;
 Q = getQ(n_seg, n_order, n_costorder, ts);
@@ -93,6 +96,10 @@ for idx=0:n_seg-1
     MatQ = blkdiag(MatQ,Q_k3);
 end
 clear Q_k Q_k3 idx
+
+%%%%%%%%%%%%%%
+clc %%%%% 清屏
+%%%%%%%%%%%%%%
 
 EigenQ = readmatrix("E:\datas\Swift\MatQ.csv");
 EigenAeq = readmatrix("E:\datas\Swift\MatAeq.csv");
@@ -176,27 +183,48 @@ segpoly.JgdT = [];
 segpoly.Tpow = [];
 segpoly.Map  = [];
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% EquMatVec 对比
+EquMatVec = readmatrix("E:\datas\Swift\EquMatVec.csv");
+
+Equbeq = EquMatVec(:,end);
+EquMatVec(:,end) = [];
+EquAeq = EquMatVec;
+
+Equbeqbias = Equbeq - beq;
+fprintf("Equbeq quadratic bias : %f \n",sum(Equbeqbias.^2));
+fprintf("Equbeq max bias : %f \n",max(Equbeqbias));
+
+EquAeqbias = EquAeq - Aeq;
+fprintf("Equbeq quadratic bias : %f \n",sum(sum(EquAeqbias.^2)));
+fprintf("Equbeq max bias : %f \n",max(max(abs(EquAeqbias))));
+
+
 % 时间最优选项
 segpoly.TimeOptimal = true;
 
 polytraj = PolyTraj(segpoly);
 polytraj = polytraj.setTarray(ts);
 polytraj = polytraj.setCoeffs(QPcoeffs);
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% QP 求解对比
 f = zeros(size(MatQ,1),1);
 options = optimoptions('quadprog','MaxIterations',6000);
 %%%% QP 求解多项式系数
-fprintf("=============================poly_coef===================================");
+fprintf("=============================poly_coef===================================\n");
 poly_coef = quadprog(MatQ,f,[],[],Aeq, beq,[],[],[],options);
-fprintf("=============================Eigen_poly_coef===================================");
+fprintf("=============================Eigen_poly_coef===================================\n");
 Eigen_poly_coef = quadprog(EigenQ,f,[],[],EigenAeq, Eigenbeq,[],[],[],options);
-fprintf("=============================SPD_poly_coef===================================");
+fprintf("=============================SPD_poly_coef===================================\n");
 % SPD_poly_coef = quadprog(SPDEigenQ,f,[],[],Aeq, beq,[],[],[],options);
 
 coeffbias = poly_coef - QPcoeffs;
 fprintf("QP coeffs quadratic bias : %f \n",sum(coeffbias.^2));
 fprintf("QP coeffs max bias : %f \n",max(coeffbias));
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% TimeMat 和 StatesTraj 对比
 TimeMat = [];
 StatesTraj = [];
 
@@ -213,6 +241,31 @@ reduceCoeffs = polytraj.getReduceOptVelue(QPcoeffs);
 
 [Re_Aeq,Re_beq] = polytraj.SolveAeqbeq(reduceCoeffs,segpoly);
 Re_x = pinv(Re_Aeq)*Re_beq;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% ReMatVec 对比
+EigenReMatVec = readmatrix("E:\datas\Swift\MatVec.csv");
+
+EigenRebeq = EigenReMatVec(:,end);
+EigenReMatVec(:,end) = [];
+
+EigenRex = EigenReMatVec(:,end);
+EigenReMatVec(:,end) = [];
+
+EigenReAeq = EigenReMatVec;
+
+EigenRebeqbias = EigenRebeq - Re_beq;
+fprintf("EigenRebeq quadratic bias : %f \n",sum(EigenRebeqbias.^2));
+fprintf("EigenRebeq max bias : %f \n",max(EigenRebeqbias));
+
+EigenRexbias = EigenRex - Re_x;
+fprintf("EigenRex quadratic bias : %f \n",sum(sum(EigenRexbias.^2)));
+fprintf("EigenRex max bias : %f \n",max(max(abs(EigenRexbias))));
+
+EigenReAeqbias = EigenReAeq - Re_Aeq;
+fprintf("EigenReAeq quadratic bias : %f \n",sum(sum(EigenReAeqbias.^2)));
+fprintf("EigenReAeq max bias : %f \n",max(max(abs(EigenReAeqbias))));
+% spy(EigenReAeqbias)
 
 segpoly.sdf = sdfmap;
 segpoly.traj = polytraj;
@@ -247,16 +300,27 @@ segpoly.traj = polytraj;
 %%%% 扩充 coeffs 为 优化变量
 QPcoeffs = [QPcoeffs;log(ts)];
 
+%%%% 时间序列多次幂
 TimePow = [ts';power(ts,2)';power(ts,3)';power(ts,4)';power(ts,5)';power(ts,6)';power(ts,7)'];
+
+segpoly.SAVE_DATA = true;
+
+if isfield(segpoly,'SAVE_DATA')
+    fprintf("segpoly.SAVE_DATA is defined \n");
+else
+    fprintf("segpoly.SAVE_DATA undefined ~~\n");
+end
 
 
 [smoCost,smograd]=smoothCost(QPcoeffs,segpoly);
+
 [obsCost,obsgrad]=obstacleCost(QPcoeffs,segpoly);
+
 [dynCost,dyngrad]=dynamicCost(QPcoeffs,segpoly);
+
 [timCost,timgrad]=timeCost(QPcoeffs,segpoly);
+
 [ovaCost,ovagrad]=ovalCost(QPcoeffs,segpoly);
-
-
 
 
 if (SAVE_CSV)
@@ -273,6 +337,11 @@ writematrix(TRAJ_DATA,filename);
 %%%% 保存时间多次幂
 filename = "E:\datas\Swift\Debug\MATLABTimeMat.csv";
 TRAJ_DATA = TimeMat;
+TRAJ_DATA = round(TRAJ_DATA,4);
+writematrix(TRAJ_DATA,filename);
+%%%% 保存时间序列多次幂
+filename = "E:\datas\Swift\Debug\MATLABTimePow.csv";
+TRAJ_DATA = TimePow;
 TRAJ_DATA = round(TRAJ_DATA,4);
 writematrix(TRAJ_DATA,filename);
 %%%% 保存cost和grad

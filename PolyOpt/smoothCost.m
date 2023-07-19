@@ -29,6 +29,13 @@ TimeOptimal = segpoly.TimeOptimal;
 % 等式约束降维选项
 ReduceOptimalValue = segpoly.ReduceOptimalValue;
 
+% //Debug: 保存数据
+if isfield(segpoly,'SAVE_DATA')
+    SAVE_DATA = segpoly.SAVE_DATA;
+else
+    SAVE_DATA = false;
+end
+
 if (TimeOptimal)
     ts = coeffs(end-n_seg + 1:end); % 最优的n_seg个变量是tau
     coeffs(end-n_seg + 1:end) = [];
@@ -43,6 +50,9 @@ if (ReduceOptimalValue)
     segpoly.T = ts;
     coeffs = segpoly.traj.SolveCoeffs(coeffs,segpoly);
 end
+
+gdsmo = [];
+gdsmocoeff = [];
 
 cost = 0;
 grad = zeros(1,n_order*n_dim*n_seg);
@@ -64,6 +74,41 @@ for j = 1: n_seg
     ygradt = getSegPolyGardatT(yc,ts(j));
     qgradt = getSegPolyGardatT(qc,ts(j));
     gradt(j) = (xgradt + ygradt + segpoly.R * qgradt)*ts(j); % 对数的导数还是自身
+    
+    gdsmocoeff = [gdsmocoeff;xc';yc';qc'];
+    
+    t = ts(j);
+    c=xc;
+    c(1)=[];
+    xcgd = [576*c(4)^2 , 5760*c(4)*c(5)*t , 14400*c(5)^2*t^2 , 17280*c(4)*c(6)*t^2 , ...
+         86400*c(5)*c(6)*t^3 , 40320*c(4)*c(7)*t^3 , 129600*c(6)^2*t^4 , ...
+         201600*c(5)*c(7)*t^4 , 604800*c(6)*c(7)*t^5 , 705600*c(7)^2*t^6];
+    c=yc;
+    c(1)=[];
+   ycgd = [576*c(4)^2 , 5760*c(4)*c(5)*t , 14400*c(5)^2*t^2 , 17280*c(4)*c(6)*t^2 , ...
+         86400*c(5)*c(6)*t^3 , 40320*c(4)*c(7)*t^3 , 129600*c(6)^2*t^4 , ...
+         201600*c(5)*c(7)*t^4 , 604800*c(6)*c(7)*t^5 , 705600*c(7)^2*t^6];
+    c=qc;
+    c(1)=[];
+    qcgd = [576*c(4)^2 , 5760*c(4)*c(5)*t , 14400*c(5)^2*t^2 , 17280*c(4)*c(6)*t^2 , ...
+         86400*c(5)*c(6)*t^3 , 40320*c(4)*c(7)*t^3 , 129600*c(6)^2*t^4 , ...
+         201600*c(5)*c(7)*t^4 , 604800*c(6)*c(7)*t^5 , 705600*c(7)^2*t^6];
+    xyqgd = [xcgd,ycgd,qcgd];
+    gdsmo =[gdsmo, xyqgd'];
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% save debug data
+if (SAVE_DATA)
+    filename = "E:\datas\Swift\Debug\MATLABgdsmo.csv";
+    TRAJ_DATA = gdsmo;
+    TRAJ_DATA = round(TRAJ_DATA,6);
+    writematrix(TRAJ_DATA,filename);
+    filename = "E:\datas\Swift\Debug\MATLABgdsmocoeff.csv";
+    TRAJ_DATA = gdsmocoeff;
+    TRAJ_DATA = round(TRAJ_DATA,6);
+    writematrix(TRAJ_DATA,filename);
+    fprintf("save gdsmo debug datas, 上天保佑 \n");
 end
 
 % for j = 1: n_seg

@@ -11,6 +11,14 @@ n_order = segpoly.norder;
 TimeOptimal = segpoly.TimeOptimal;
 % 等式约束降维选项
 ReduceOptimalValue = segpoly.ReduceOptimalValue;
+%%%%%%%%%%%%%%%%%%% //Debug: 保存数据
+if isfield(segpoly,'SAVE_DATA')
+    SAVE_DATA = segpoly.SAVE_DATA;
+else
+    SAVE_DATA = false;
+end
+gddyn = [];
+
 
 if (TimeOptimal)
     ts = coeffs(end-n_seg + 1:end); % 最后的n_seg个变量是tau
@@ -45,7 +53,7 @@ wa_max = dynamic_rate * segpoly.wa_max;
 for idi = 1:n_seg
     [pos,vel,acc] = polytraj.getStates(idi);
     jer = polytraj.getJerk(idi);
-    Tdt = polytraj.bardt(n_seg);
+    Tdt = polytraj.bardt(idi);
     gradzeros = zeros(segpoly.norder,1);
     xvgrad = gradzeros;
     yvgrad = gradzeros;
@@ -68,7 +76,7 @@ for idi = 1:n_seg
         dotjer = jer(idj+1,:);
         delvel = [0,0,0];
         delacc = [0,0,0];
-        Mt = getCoeffCons(idi*Tdt,n_order,4);
+        Mt = getCoeffCons(idj*Tdt,n_order,4);
         vect2 = Mt(2,:);
         vect3 = Mt(3,:);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -182,9 +190,11 @@ for idi = 1:n_seg
         qagrad = qagrad + temqagrad;
         % 计算时间梯度
         if(TimeOptimal)
-            vgradt = vgradt + 2 * delvel * dotacc' * idi * Tdt;
-            agradt = agradt + 2 * delacc * dotjer' * idi * Tdt; % 自然数对数的导数为自身
+            vgradt = vgradt + 2 * delvel * dotacc' * idj * Tdt;
+            agradt = agradt + 2 * delacc * dotjer' * idj * Tdt; % 自然数对数的导数为自身
         end
+        %%%% ////Debug: [Tdt deltaVel deltaAcc velCost accCost velgradt accgradt]
+        gddyn = [gddyn;idj*Tdt,dotvel,dotacc,dotjer,delvel,delacc,sum(delvel.^2),sum(delacc.^2),2 * delvel * dotacc',2 * delacc * dotjer' ];
     end % grad的计算
     cost = cost + velcost + acccost;
     % 这个梯度有问题呀,添加后就报错：Converged to an infeasible point
@@ -196,6 +206,17 @@ for idi = 1:n_seg
         gradt(idi) = vgradt + agradt;
     end
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%% save debug data
+if (SAVE_DATA)
+    filename = "E:\datas\Swift\Debug\MATLABgddyn.csv";
+    TRAJ_DATA = gddyn;
+    TRAJ_DATA = round(TRAJ_DATA,6);
+    writematrix(TRAJ_DATA,filename);
+    fprintf("save gddyn debug datas, 上天保佑 \n");
+end
+
 if(ReduceOptimalValue)
     grad = segpoly.traj.getReduceOptVelue(grad);
 end
