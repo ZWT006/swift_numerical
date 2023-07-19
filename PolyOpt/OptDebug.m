@@ -168,12 +168,40 @@ for idi = 1:n_seg
 end
 
 Discrete = [ts,polytraj.dists,polytraj.bars,polytraj.bardt];
+reduceCoeffs = polytraj.getReduceOptVelue(QPcoeffs);
 
-[Re_Aeq,Re_beq] = polytraj.SolveAeqbeq(QPcoeffs,segpoly);
+[Re_Aeq,Re_beq] = polytraj.SolveAeqbeq(reduceCoeffs,segpoly);
 Re_x = pinv(Re_Aeq)*Re_beq;
 
 segpoly.sdf = sdfmap;
 segpoly.traj = polytraj;
+
+% OptVelue = QPcoeffs;
+% re_OptVelue = zeros(opt_dof,1);
+% fprintf("optIndex : ");
+% dof_num = 0;
+% for id_seg=0:segpoly.seg-1 
+%     if (dof_num >= segpoly.dof)
+%         break;
+%     end % 5~8 阶次系数
+%     for id_dim = 0:segpoly.Dim-1
+%         if (dof_num >= segpoly.dof)
+%             break;
+%         end
+%         for id_order=segpoly.ninput+2:segpoly.norder
+%             % 当前优化变量的行序号
+%             row_num = id_seg*segpoly.Dim*segpoly.norder + id_dim*segpoly.norder + id_order;
+%             dof_num = dof_num + 1;
+%             re_OptVelue(dof_num) = OptVelue(row_num);
+%             fprintf(" %d ",row_num);
+%             if (dof_num >= segpoly.dof)
+%                 break;
+%             end
+%         end
+%     end
+% end
+% fprintf("\n");
+% clear OptVelue id_order id_seg id_dim
 
 %%%% 扩充 coeffs 为 优化变量
 QPcoeffs = [QPcoeffs;log(ts)];
@@ -216,5 +244,15 @@ filename = "E:\datas\Swift\Debug\MATLABMatVec.csv";
 TRAJ_DATA = [Re_Aeq,Re_x,Re_beq];
 TRAJ_DATA = round(TRAJ_DATA,4);
 writematrix(TRAJ_DATA,filename);
+%%%% 保存原始矩阵和coeffs
+filename = "E:\datas\Swift\Debug\MATLABAbeq.csv";
+TRAJ_DATA = [Aeq,beq];
+TRAJ_DATA = round(TRAJ_DATA,4);
+writematrix(TRAJ_DATA,filename);
 
+% QPcoeffs(end-2:end)=[];
+% filename = "E:\datas\Swift\Debug\MATLABQPCoeffs.csv";
+% TRAJ_DATA = [QPcoeffs,[poly_coef_x;poly_coef_y;poly_coef_q],coeffs];
+% TRAJ_DATA = round(TRAJ_DATA,4);
+% writematrix(TRAJ_DATA,filename);
 end

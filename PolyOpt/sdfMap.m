@@ -82,8 +82,9 @@ classdef sdfMap
 %             if (dist) < 0.0001
 %                 dist = 99999;
 %             end
-            xgrad = sum((distx-dist));
-            ygrad = sum((disty-dist));
+            %%%% fix grad bug
+            xgrad = sum((dist-distx(1) + distx(2)-dist))/2.0;
+            ygrad = sum((dist-disty(1) + disty(2)-dist))/2.0;
             % BUG 好像这里求梯度还得除以分辨率?
             % BUG 这里的梯度方向好像不对呀??? 是不是应该顺序依次相减?
             % 这个距离场的梯度绝对是错的

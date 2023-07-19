@@ -28,6 +28,7 @@ classdef PolyTraj
         bardt; % 每段seg的bars的dt
         coeffl; % 系数变量的个数
         dof; % 优化问题系数自由度
+        optindex;
     end
     methods
         %% 功能函数区 init set 
@@ -49,6 +50,7 @@ classdef PolyTraj
             obj.coeffl = segpoly.coeffl;
             obj.d_th = segpoly.d_th;
             obj.dof  = segpoly.dof;
+            obj.optindex = [];
         end
         function obj = setCoeffs(obj,coeffs)
             % 设置[x,y,q]的系数
