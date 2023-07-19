@@ -59,8 +59,32 @@ while p ~= 0
   end
 end
 
-
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Eigen::MatrixXd nearestSPD(const Eigen::MatrixXd& A) {
+%     // 检查输入参数
+%     if (A.rows() != A.cols()) {
+%         throw std::invalid_argument("A must be a square matrix.");
+%     }
+%     
+%     Eigen::MatrixXd B = (A + A.transpose()) / 2;
+%     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigensolver(B);
+%     Eigen::MatrixXd H = eigensolver.eigenvectors() * eigensolver.eigenvalues().cwiseMax(0).asDiagonal() * eigensolver.eigenvectors().transpose();
+%     Eigen::MatrixXd Ahat = (B + H) / 2;
+%     Ahat = (Ahat + Ahat.transpose()) / 2;
+%     
+%     while (true) {
+%         Eigen::LLT<Eigen::MatrixXd> lltOfAhat(Ahat);
+%         if (lltOfAhat.info() == Eigen::NumericalIssue) {
+%             double minEigenvalue = Ahat.diagonal().minCoeff();
+%             Ahat += (-minEigenvalue * k * k + std::numeric_limits<double>::epsilon() * minEigenvalue) * Eigen::MatrixXd::Identity(A.rows(), A.cols());
+%             k++;
+%         } else {
+%             break;
+%         }
+%     }
+%     
+%     return Ahat;
+% }
 
 
 

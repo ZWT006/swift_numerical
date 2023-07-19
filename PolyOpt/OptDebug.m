@@ -6,7 +6,7 @@ addpath("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\LazyPRM\");
 % for QP solver
 addpath("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\TrajGener\");
 
-SAVE_CSV = true;
+SAVE_CSV = false;
 
 %%%% 计算每段的时间
 RATION = 100;
@@ -73,6 +73,7 @@ QPdynamiclimit = true;
 OP_structure.QP_inequality = QPdynamiclimit;
 
 %%%% QP 
+fprintf("=============================quadprog===================================");
 OP_structure.v_max = pv_max;
 OP_structure.a_max = pa_max;
 poly_coef_x = MinimumPolySolver(path(:, 1), ts, n_seg, n_order, n_costorder, n_inputorder,OP_structure);
@@ -82,6 +83,32 @@ poly_coef_y = MinimumPolySolver(path(:, 2), ts, n_seg, n_order, n_costorder, n_i
 OP_structure.v_max = wv_max;
 OP_structure.a_max = wa_max;
 poly_coef_q = MinimumPolySolver(path(:, 3), ts, n_seg, n_order, n_costorder, n_inputorder,OP_structure);
+
+MatQ = [];
+ER = eye(n_order+1)*0.8;
+Q = getQ(n_seg, n_order, n_costorder, ts);
+for idx=0:n_seg-1
+    Q_k = Q(idx*(n_order+1)+1:(idx+1)*(n_order+1),idx*(n_order+1)+1:(idx+1)*(n_order+1));
+    Q_k3 = blkdiag(Q_k,Q_k,Q_k*ER);
+    MatQ = blkdiag(MatQ,Q_k3);
+end
+clear Q_k Q_k3 idx
+
+EigenQ = readmatrix("E:\datas\Swift\MatQ.csv");
+EigenAeq = readmatrix("E:\datas\Swift\MatAeq.csv");
+Eigenbeq = readmatrix("E:\datas\Swift\Vecbeq.csv");
+%%%% eig 函数求解矩阵特征值
+Qeig = eig(Q);
+MatQeig = eig(MatQ);
+EigenQeig = eig(EigenQ);
+SPDEigenQ = nearestSPD(EigenQ);
+SPDEigenQeig = eig(SPDEigenQ);
+
+fprintf("Q minimual eigs : %f \n",min(Qeig));
+fprintf("MatQ minimual eigs : %f \n",min(MatQeig));
+fprintf("EigenQ minimual eigs : %f \n",min(EigenQeig));
+fprintf("SPDEigenQ minimual eigs : %f \n",min(SPDEigenQeig));
+
 
 n_order = 8; % 7阶多项式
 n_cost  = 4;
@@ -155,6 +182,20 @@ segpoly.TimeOptimal = true;
 polytraj = PolyTraj(segpoly);
 polytraj = polytraj.setTarray(ts);
 polytraj = polytraj.setCoeffs(QPcoeffs);
+
+f = zeros(size(MatQ,1),1);
+options = optimoptions('quadprog','MaxIterations',6000);
+%%%% QP 求解多项式系数
+fprintf("=============================poly_coef===================================");
+poly_coef = quadprog(MatQ,f,[],[],Aeq, beq,[],[],[],options);
+fprintf("=============================Eigen_poly_coef===================================");
+Eigen_poly_coef = quadprog(EigenQ,f,[],[],EigenAeq, Eigenbeq,[],[],[],options);
+fprintf("=============================SPD_poly_coef===================================");
+% SPD_poly_coef = quadprog(SPDEigenQ,f,[],[],Aeq, beq,[],[],[],options);
+
+coeffbias = poly_coef - QPcoeffs;
+fprintf("QP coeffs quadratic bias : %f \n",sum(coeffbias.^2));
+fprintf("QP coeffs max bias : %f \n",max(coeffbias));
 
 TimeMat = [];
 StatesTraj = [];
@@ -249,7 +290,11 @@ filename = "E:\datas\Swift\Debug\MATLABAbeq.csv";
 TRAJ_DATA = [Aeq,beq];
 TRAJ_DATA = round(TRAJ_DATA,4);
 writematrix(TRAJ_DATA,filename);
-
+%%%% 保存QP的 MatQ 
+filename = "E:\datas\Swift\Debug\MATLABMatQ.csv";
+TRAJ_DATA = MatQ;
+TRAJ_DATA = round(TRAJ_DATA,4);
+writematrix(TRAJ_DATA,filename);
 % QPcoeffs(end-2:end)=[];
 % filename = "E:\datas\Swift\Debug\MATLABQPCoeffs.csv";
 % TRAJ_DATA = [QPcoeffs,[poly_coef_x;poly_coef_y;poly_coef_q],coeffs];
