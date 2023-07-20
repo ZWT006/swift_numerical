@@ -102,11 +102,11 @@ end
 if (SAVE_DATA)
     filename = "E:\datas\Swift\Debug\MATLABgdsmo.csv";
     TRAJ_DATA = gdsmo;
-    TRAJ_DATA = round(TRAJ_DATA,6);
+    TRAJ_DATA = round(TRAJ_DATA,8);
     writematrix(TRAJ_DATA,filename);
     filename = "E:\datas\Swift\Debug\MATLABgdsmocoeff.csv";
     TRAJ_DATA = gdsmocoeff;
-    TRAJ_DATA = round(TRAJ_DATA,6);
+    TRAJ_DATA = round(TRAJ_DATA,8);
     writematrix(TRAJ_DATA,filename);
     fprintf("save gdsmo debug datas, 上天保佑 \n");
 end

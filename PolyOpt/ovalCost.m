@@ -51,6 +51,7 @@ for idi = 1:n_seg
     for idj = 0:polytraj.bars(idi)
         vel_I = vel(idj+1,1:2); % 惯性系下的速度
         acc_I = acc(idj+1,1:2); % 惯性系下的加速度
+        dotvel = vel(idj+1,:);
         Mt = getCoeffCons(idj*Tdt,n_order,4);
         vect1 = Mt(1,:);
         vect2 = Mt(2,:);
@@ -59,6 +60,7 @@ for idi = 1:n_seg
         vel_B = Rmatrix * vel_I'; % 载体系下的速度
         acc_B = Rmatrix * acc_I'; % 载体系下的加速度
         vel_B2 = vel_B(1)^2/ORIEN_VEL^2+vel_B(2)^2/VERDIT_VEL^2;
+        acc_B2 = acc_B' * acc_B;
         if (vel_B2 > oval_rate)
             cost = cost + vel_B2 - oval_rate;
 % \left\{ \begin{array}{c}
@@ -66,8 +68,8 @@ for idi = 1:n_seg
 % 	\frac{2(\mathrm{vy(}t)\cos\mathrm{(}q(t))-\mathrm{vx(}t)\sin\mathrm{(}q(t)))\left( \mathrm{vx(}t)q\prime(t)(-\cos\mathrm{(}q(t)))-\mathrm{vy(}t)q\prime(t)\sin\mathrm{(}q(t))-\sin\mathrm{(}q(t))\mathrm{vx}\prime(t)+\cos\mathrm{(}q(t))\mathrm{vy}\prime(t) \right)}{\mathrm{velb}}\\
 % \end{array} \right\} 
             gradt(idi) = gradt(idi) + ...
-                (2*vel_B(2)*(acc_B(2) - cos(yaw)*vel(1)*vel(3) - sin(yaw)*vel(2)*vel(3))/VERDIT_VEL^2 + ...
-                2*vel_B(1)*(acc_B(1) - sin(yaw)*vel(1)*vel(3) + cos(yaw)*vel(2)*vel(3))/ORIEN_VEL^2) * idj * Tdt;
+                (2*vel_B(2)*(acc_B(2) - cos(yaw)*dotvel(1)*dotvel(3) - sin(yaw)*dotvel(2)*dotvel(3))/VERDIT_VEL^2 + ...
+                2*vel_B(1)*(acc_B(1) - sin(yaw)*dotvel(1)*dotvel(3) + cos(yaw)*dotvel(2)*dotvel(3))/ORIEN_VEL^2) * idj * Tdt;
 % \left\{ \begin{array}{c}
 % 	\frac{2\cos\mathrm{(}q(t))(\mathrm{vx(}t)\cos\mathrm{(}q(t))+\mathrm{vy(}t)\sin\mathrm{(}q(t)))}{\mathrm{vela}}-\frac{2\sin\mathrm{(}q(t))(\mathrm{vy(}t)\cos\mathrm{(}q(t))-\mathrm{vx(}t)\sin\mathrm{(}q(t)))}{\mathrm{velb}}\\
 % 	\frac{2\sin\mathrm{(}q(t))(\mathrm{vx(}t)\cos\mathrm{(}q(t))+\mathrm{vy(}t)\sin\mathrm{(}q(t)))}{\mathrm{vela}}+\frac{2\cos\mathrm{(}q(t))(\mathrm{vy(}t)\cos\mathrm{(}q(t))-\mathrm{vx(}t)\sin\mathrm{(}q(t)))}{\mathrm{velb}}\\
@@ -83,10 +85,11 @@ for idi = 1:n_seg
         else
 %             cost = cost + 0;
         end
-        %%%% ////Debug: [Tdt vel_B(1) vel_B(2) vel_B2 yaw R(1,1) R(1,2) R(2,1) R(2,2) gradt xgrad ygrad qgrad]
-        gdova = [gdova;idj * Tdt,vel_B(1),vel_B(2),vel_B2,yaw,Rmatrix(1,1),Rmatrix(1,2),Rmatrix(2,1),Rmatrix(2,2),...
-                (2*vel_B(2)*(acc_B(2) - cos(yaw)*vel(1)*vel(3) - sin(yaw)*vel(2)*vel(3))/VERDIT_VEL^2 + ...
-                 2*vel_B(1)*(acc_B(1) - sin(yaw)*vel(1)*vel(3) + cos(yaw)*vel(2)*vel(3))/ORIEN_VEL^2),...
+        %%%% ////Debug: [Tdt vel_B(1) vel_B(2) vel_B2 acc_B(1) acc_B(2) acc_B2 yaw R(1,1) R(1,2) R(2,1) R(2,2) gradt xgrad ygrad qgrad]
+        gdova = [gdova;idj * Tdt,vel_B(1),vel_B(2),vel_B2,acc_B(1),acc_B(2),acc_B2,yaw,...
+                Rmatrix(1,1),Rmatrix(1,2),Rmatrix(2,1),Rmatrix(2,2),...
+                (2*vel_B(2)*(acc_B(2) - cos(yaw)*dotvel(1)*dotvel(3) - sin(yaw)*dotvel(2)*dotvel(3))/VERDIT_VEL^2 + ...
+                 2*vel_B(1)*(acc_B(1) - sin(yaw)*dotvel(1)*dotvel(3) + cos(yaw)*dotvel(2)*dotvel(3))/ORIEN_VEL^2),...
                 (2*cos(yaw)*vel_B(1)/ORIEN_VEL^2 - 2*sin(yaw)*vel_B(2)/VERDIT_VEL^2),...
                 (2*sin(yaw)*vel_B(1)/ORIEN_VEL^2 + 2*cos(yaw)*vel_B(2)/VERDIT_VEL^2),...
                 (2*vel_B(1)*vel_B(2)/ORIEN_VEL^2 + 2*(-vel_B(1))*vel_B(2)/VERDIT_VEL^2)];
@@ -101,7 +104,7 @@ end
 if (SAVE_DATA)
     filename = "E:\datas\Swift\Debug\MATLABgdova.csv";
     TRAJ_DATA = gdova;
-    TRAJ_DATA = round(TRAJ_DATA,6);
+    TRAJ_DATA = round(TRAJ_DATA,8);
     writematrix(TRAJ_DATA,filename);
     fprintf("save gdova debug datas, 上天保佑 \n");
 end

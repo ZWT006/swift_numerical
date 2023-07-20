@@ -20,6 +20,7 @@ else
     SAVE_DATA = false;
 end
 gdobs = [];
+gdobstime = [];
 
 if (TimeOptimal)
     ts = coeffs(end-n_seg + 1:end); % 最后的n_seg个变量是tau
@@ -55,11 +56,11 @@ for idi = 1:n_seg
         dotvel = vel(idj+1,:);
         dotacc = acc(idj+1,:);
         [dotdist,dotxgrad,dotygrad] = sdfmap.getDistAndGrad(dotpos(1),dotpos(2));
+        tvec = polytraj.getTvec(idj*Tdt);
 %         fprintf("dotxgrad=%2.4f; dotygrad=%2.4f\n",dotxgrad,dotygrad);
         if (dotdist < d_th ) % 超过阈值才计算cost %|| dotdist > 99
             % 使用倒数计算使曲线光滑
             veccost = veccost + 1/(2*(dotdist))^2 * (dotvel(1)^2+dotvel(2)^2) * Tdt;
-            tvec = polytraj.getTvec(idj*Tdt);
             xgrad = xgrad + dotxgrad * tvec' * (-2*(dotdist)^3);
             ygrad = ygrad + dotygrad * tvec' * (-2*(dotdist)^3);
             % 感觉sdf对时间的偏导数是0呀
@@ -82,7 +83,9 @@ for idi = 1:n_seg
             end
         end
         %%%% //[xpos ypos dist xgrad ygrad Tdt cost]
-        gdobs = [gdobs;dotpos(1),dotpos(2),dotdist,dotxgrad,dotygrad,idj*Tdt, 1/(2*(dotdist+0.01))^2 * (dotvel(1)^2+dotvel(2)^2) * Tdt];
+        gdobs = [gdobs;dotpos(1),dotpos(2),dotdist,dotxgrad,dotygrad,idj*Tdt,...
+            1/(2*(dotdist))^2 * (dotvel(1)^2+dotvel(2)^2) * Tdt, (dotvel(1)^2+dotvel(2)^2),1/(2*(dotdist))^2,(-2*(dotdist)^3)];
+        gdobstime = [gdobstime;tvec];
     end
     cost = cost + veccost;
     grad((idi-1)*dim*n_order + 1:((idi-1)*dim+1)*n_order) = xgrad;
@@ -97,7 +100,11 @@ end
 if (SAVE_DATA)
     filename = "E:\datas\Swift\Debug\MATLABgdobs.csv";
     TRAJ_DATA = gdobs;
-    TRAJ_DATA = round(TRAJ_DATA,6);
+    TRAJ_DATA = round(TRAJ_DATA,8);
+    writematrix(TRAJ_DATA,filename);
+    filename = "E:\datas\Swift\Debug\MATLABgdobstime.csv";
+    TRAJ_DATA = gdobstime;
+    TRAJ_DATA = round(TRAJ_DATA,8);
     writematrix(TRAJ_DATA,filename);
     fprintf("save gdobs debug datas, 上天保佑 \n");
 end

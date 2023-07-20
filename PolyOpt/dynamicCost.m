@@ -194,13 +194,16 @@ for idi = 1:n_seg
             agradt = agradt + 2 * delacc * dotjer' * idj * Tdt; % 自然数对数的导数为自身
         end
         %%%% ////Debug: [Tdt deltaVel deltaAcc velCost accCost velgradt accgradt]
-        gddyn = [gddyn;idj*Tdt,dotvel,dotacc,dotjer,delvel,delacc,sum(delvel.^2),sum(delacc.^2),2 * delvel * dotacc',2 * delacc * dotjer' ];
+        gddyn = [gddyn;idj*Tdt,delvel,delacc,sum(delvel.^2),sum(delacc.^2),2 * delvel * dotacc',2 * delacc * dotjer',sum(dotvel.^2),sum(dotacc.^2),sum(dotjer.^2)];
     end % grad的计算
     cost = cost + velcost + acccost;
     % 这个梯度有问题呀,添加后就报错：Converged to an infeasible point
-    grad((idi-1)*dim*n_order + 1:((idi-1)*dim+1)*n_order)     = xvgrad;% + xagrad;
-    grad(((idi-1)*dim+1)*n_order + 1:((idi-1)*dim+2)*n_order) = yvgrad;% + yagrad;
-    grad(((idi-1)*dim+2)*n_order + 1:((idi-1)*dim+3)*n_order) = qvgrad;% + qagrad;
+%     grad((idi-1)*dim*n_order + 1:((idi-1)*dim+1)*n_order)     = xvgrad;% + xagrad;
+%     grad(((idi-1)*dim+1)*n_order + 1:((idi-1)*dim+2)*n_order) = yvgrad;% + yagrad;
+%     grad(((idi-1)*dim+2)*n_order + 1:((idi-1)*dim+3)*n_order) = qvgrad;% + qagrad;
+    grad((idi-1)*dim*n_order + 1:((idi-1)*dim+1)*n_order)     = xvgrad + xagrad;
+    grad(((idi-1)*dim+1)*n_order + 1:((idi-1)*dim+2)*n_order) = yvgrad + yagrad;
+    grad(((idi-1)*dim+2)*n_order + 1:((idi-1)*dim+3)*n_order) = qvgrad + qagrad;
     % gradt 直接置零
     if (TimeOptimal)
         gradt(idi) = vgradt + agradt;

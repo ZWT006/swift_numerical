@@ -135,7 +135,7 @@ map = imread('F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\map\map10.png');
 sdfmap = sdfMap(map);
 %%%% segpoly
 bound_rate = 0.8;
-oval_rate  = 0.8;
+oval_rate  = 0.4;
 
 segpoly.pv_max = pv_max;
 segpoly.pa_max = pa_max;
@@ -256,7 +256,7 @@ EigenReAeq = EigenReMatVec;
 
 EigenRebeqbias = EigenRebeq - Re_beq;
 fprintf("EigenRebeq quadratic bias : %f \n",sum(EigenRebeqbias.^2));
-fprintf("EigenRebeq max bias : %f \n",max(EigenRebeqbias));
+fprintf("EigenRebeq max bias : %f \n",max(abs(EigenRebeqbias)));
 
 EigenRexbias = EigenRex - Re_x;
 fprintf("EigenRex quadratic bias : %f \n",sum(sum(EigenRexbias.^2)));
@@ -266,6 +266,15 @@ EigenReAeqbias = EigenReAeq - Re_Aeq;
 fprintf("EigenReAeq quadratic bias : %f \n",sum(sum(EigenReAeqbias.^2)));
 fprintf("EigenReAeq max bias : %f \n",max(max(abs(EigenReAeqbias))));
 % spy(EigenReAeqbias)
+
+xbias = Re_Aeq*Re_x - Re_beq;
+fprintf("Re Solve quadratic bias : %f \n",sum(xbias.^2));
+fprintf("Re Solve max bias : %f \n",max(abs(xbias)));
+
+Eigenxbias = EigenReAeq*EigenRex - EigenRebeq;
+fprintf("Eigen Solve quadratic bias : %f \n",sum(Eigenxbias.^2));
+fprintf("Eigen Solve max bias : %f \n",max(abs(Eigenxbias)));
+
 
 segpoly.sdf = sdfmap;
 segpoly.traj = polytraj;
@@ -327,46 +336,46 @@ if (SAVE_CSV)
 %%%% 保存离散参数
 filename = "E:\datas\Swift\Debug\MATLABDiscrete.csv";
 TRAJ_DATA = Discrete;
-TRAJ_DATA = round(TRAJ_DATA,4);
+TRAJ_DATA = round(TRAJ_DATA,8);
 writematrix(TRAJ_DATA,filename);
 %%%% 保存离散状态
 filename = "E:\datas\Swift\Debug\MATLABStatesTraj.csv";
 TRAJ_DATA = StatesTraj;
-TRAJ_DATA = round(TRAJ_DATA,4);
+TRAJ_DATA = round(TRAJ_DATA,8);
 writematrix(TRAJ_DATA,filename);
 %%%% 保存时间多次幂
 filename = "E:\datas\Swift\Debug\MATLABTimeMat.csv";
 TRAJ_DATA = TimeMat;
-TRAJ_DATA = round(TRAJ_DATA,4);
+TRAJ_DATA = round(TRAJ_DATA,8);
 writematrix(TRAJ_DATA,filename);
 %%%% 保存时间序列多次幂
 filename = "E:\datas\Swift\Debug\MATLABTimePow.csv";
 TRAJ_DATA = TimePow;
-TRAJ_DATA = round(TRAJ_DATA,4);
+TRAJ_DATA = round(TRAJ_DATA,8);
 writematrix(TRAJ_DATA,filename);
 %%%% 保存cost和grad
 filename = "E:\datas\Swift\Debug\MATLABCostGrad.csv";
 TRAJ_DATA = [[smoCost;0;smograd], [obsCost;0;obsgrad], [dynCost;0;dyngrad], [timCost;0;timgrad], [ovaCost;0;ovagrad]];
-TRAJ_DATA = round(TRAJ_DATA,4);
+TRAJ_DATA = round(TRAJ_DATA,8);
 writematrix(TRAJ_DATA,filename);
 %%%% 保存Ax=b求解
 filename = "E:\datas\Swift\Debug\MATLABMatVec.csv";
 TRAJ_DATA = [Re_Aeq,Re_x,Re_beq];
-TRAJ_DATA = round(TRAJ_DATA,4);
+TRAJ_DATA = round(TRAJ_DATA,8);
 writematrix(TRAJ_DATA,filename);
 %%%% 保存原始矩阵和coeffs
 filename = "E:\datas\Swift\Debug\MATLABAbeq.csv";
 TRAJ_DATA = [Aeq,beq];
-TRAJ_DATA = round(TRAJ_DATA,4);
+TRAJ_DATA = round(TRAJ_DATA,8);
 writematrix(TRAJ_DATA,filename);
 %%%% 保存QP的 MatQ 
 filename = "E:\datas\Swift\Debug\MATLABMatQ.csv";
 TRAJ_DATA = MatQ;
-TRAJ_DATA = round(TRAJ_DATA,4);
+TRAJ_DATA = round(TRAJ_DATA,8);
 writematrix(TRAJ_DATA,filename);
 % QPcoeffs(end-2:end)=[];
 % filename = "E:\datas\Swift\Debug\MATLABQPCoeffs.csv";
 % TRAJ_DATA = [QPcoeffs,[poly_coef_x;poly_coef_y;poly_coef_q],coeffs];
-% TRAJ_DATA = round(TRAJ_DATA,4);
+% TRAJ_DATA = round(TRAJ_DATA,8);
 % writematrix(TRAJ_DATA,filename);
 end
