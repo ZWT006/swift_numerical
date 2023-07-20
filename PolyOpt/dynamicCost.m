@@ -45,7 +45,7 @@ wa_max = dynamic_rate * segpoly.wa_max;
 for idi = 1:n_seg
     [pos,vel,acc] = polytraj.getStates(idi);
     jer = polytraj.getJerk(idi);
-    Tdt = polytraj.bardt(n_seg);
+    Tdt = polytraj.bardt(idi);
     gradzeros = zeros(segpoly.norder,1);
     xvgrad = gradzeros;
     yvgrad = gradzeros;
@@ -68,7 +68,7 @@ for idi = 1:n_seg
         dotjer = jer(idj+1,:);
         delvel = [0,0,0];
         delacc = [0,0,0];
-        Mt = getCoeffCons(idi*Tdt,n_order,4);
+        Mt = getCoeffCons(idj*Tdt,n_order,4);
         vect2 = Mt(2,:);
         vect3 = Mt(3,:);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -188,9 +188,12 @@ for idi = 1:n_seg
     end % grad的计算
     cost = cost + velcost + acccost;
     % 这个梯度有问题呀,添加后就报错：Converged to an infeasible point
-    grad((idi-1)*dim*n_order + 1:((idi-1)*dim+1)*n_order)     = xvgrad;% + xagrad;
-    grad(((idi-1)*dim+1)*n_order + 1:((idi-1)*dim+2)*n_order) = yvgrad;% + yagrad;
-    grad(((idi-1)*dim+2)*n_order + 1:((idi-1)*dim+3)*n_order) = qvgrad;% + qagrad;
+%     grad((idi-1)*dim*n_order + 1:((idi-1)*dim+1)*n_order)     = xvgrad;% + xagrad;
+%     grad(((idi-1)*dim+1)*n_order + 1:((idi-1)*dim+2)*n_order) = yvgrad;% + yagrad;
+%     grad(((idi-1)*dim+2)*n_order + 1:((idi-1)*dim+3)*n_order) = qvgrad;% + qagrad;
+    grad((idi-1)*dim*n_order + 1:((idi-1)*dim+1)*n_order)     = xvgrad + xagrad;
+    grad(((idi-1)*dim+1)*n_order + 1:((idi-1)*dim+2)*n_order) = yvgrad + yagrad;
+    grad(((idi-1)*dim+2)*n_order + 1:((idi-1)*dim+3)*n_order) = qvgrad + qagrad;
     % gradt 直接置零
     if (TimeOptimal)
         gradt(idi) = vgradt + agradt;

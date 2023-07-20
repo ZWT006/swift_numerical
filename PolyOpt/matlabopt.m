@@ -38,7 +38,7 @@ SAVE_ALL = false;
 
 % map 加载地图与 LazyKinoPRM 中加载地图保持一致
 map = imread('F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\map\map10.png');
-load("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\pathnode.mat");
+load("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\path.mat");
 RATION = 100;
 path(:,1)=path(:,1)/RATION;
 path(:,2)=path(:,2)/RATION;

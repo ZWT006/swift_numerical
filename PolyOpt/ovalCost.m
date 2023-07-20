@@ -37,14 +37,14 @@ gradt = zeros(n_seg,1);
 
 for idi = 1:n_seg
     [pos,vel,acc] = polytraj.getStates(idi);
-    Tdt = polytraj.bardt(n_seg);
+    Tdt = polytraj.bardt(idi);
     xgrad = zeros(n_order,1);
     ygrad = zeros(n_order,1);
     qgrad = zeros(n_order,1);
     for idj = 0:polytraj.bars(idi)
         vel_I = vel(idj+1,1:2); % 惯性系下的速度
         acc_I = acc(idj+1,1:2); % 惯性系下的加速度
-        Mt = getCoeffCons(idi*Tdt,n_order,4);
+        Mt = getCoeffCons(idj*Tdt,n_order,4);
         vect1 = Mt(1,:);
         vect2 = Mt(2,:);
         yaw = pos(idj+1,3);
@@ -60,7 +60,7 @@ for idi = 1:n_seg
 % \end{array} \right\} 
             gradt(idi) = gradt(idi) + ...
                 (2*vel_B(2)*(acc_B(2) - cos(yaw)*vel(1)*vel(3) - sin(yaw)*vel(2)*vel(3))/VERDIT_VEL^2 + ...
-                2*vel_B(1)*(acc_B(1) - sin(yaw)*vel(1)*vel(3) + cos(yaw)*vel(2)*vel(3))/ORIEN_VEL^2) * idi * Tdt;
+                2*vel_B(1)*(acc_B(1) - sin(yaw)*vel(1)*vel(3) + cos(yaw)*vel(2)*vel(3))/ORIEN_VEL^2) * idj * Tdt;
 % \left\{ \begin{array}{c}
 % 	\frac{2\cos\mathrm{(}q(t))(\mathrm{vx(}t)\cos\mathrm{(}q(t))+\mathrm{vy(}t)\sin\mathrm{(}q(t)))}{\mathrm{vela}}-\frac{2\sin\mathrm{(}q(t))(\mathrm{vy(}t)\cos\mathrm{(}q(t))-\mathrm{vx(}t)\sin\mathrm{(}q(t)))}{\mathrm{velb}}\\
 % 	\frac{2\sin\mathrm{(}q(t))(\mathrm{vx(}t)\cos\mathrm{(}q(t))+\mathrm{vy(}t)\sin\mathrm{(}q(t)))}{\mathrm{vela}}+\frac{2\cos\mathrm{(}q(t))(\mathrm{vy(}t)\cos\mathrm{(}q(t))-\mathrm{vx(}t)\sin\mathrm{(}q(t)))}{\mathrm{velb}}\\
