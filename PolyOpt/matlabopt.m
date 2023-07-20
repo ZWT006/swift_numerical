@@ -36,8 +36,8 @@ clear;clc;
 
 SAVE_ALL = false;
 
-% map 加载地图与 LazyKinoPRM 中加载地图保持一致
-map = imread('F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\map\map10.png');
+% map 加载地图与 LazyKinoPRM 中加载地图保持一致 % map10 ,map5 
+map = imread('F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\map\map5.png');
 load("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\path.mat");
 RATION = 100;
 path(:,1)=path(:,1)/RATION;
@@ -327,7 +327,7 @@ ReduceOptimalValue = true;
 % 求解器选择 ###############################################################
 MATLAB_SOLVER = 1;
 NLOPT_SOLVER  = 2;
-OPT_SOLVER = MATLAB_SOLVER;
+OPT_SOLVER = NLOPT_SOLVER;
 %##########################################################################
 if (OPT_SOLVER == NLOPT_SOLVER)
     ReduceOptimalValue = true;
@@ -341,7 +341,7 @@ segpoly.lambda_smooth = 0.1;        % default 1     0.1
 segpoly.lambda_obstacle =1.0;%0.01;   % default 0.01  1       1
 segpoly.lambda_dynamic = 10;%500;   % default 500   1       10
 segpoly.lambda_time = 8000;%3000;   % default 2000  8000    
-segpoly.lambda_oval = 0;%10;       % default 10
+segpoly.lambda_oval = 10;%10;       % default 10
 % oval cost 和 oval constrain 选择一个起作用即可
 segpoly.switch_ovalcon = false;
 % Nonlinear equality Constrain
@@ -502,7 +502,8 @@ tNonlinearEnd = toc(tfminconStart);
     case NLOPT_SOLVER % NLopt 非线性优化
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Low-stage BFGS:   NLOPT_LD_TNEWTON_PRECOND_RESTART;NLOPT_LD_TNEWTON_PRECOND
-%                   NLOPT_LD_TNEWTON_RESTART        ;NLOPT_LD_TNEWTON 
+% NLOPT_LD_LBFGS    NLOPT_LD_TNEWTON_RESTART        ;NLOPT_LD_TNEWTON 
+% NLOPT_LD_MMA      NLOPT_LD_CCSAQ      NLOPT_LD_SLSQP
 opt.algorithm = NLOPT_LD_TNEWTON_PRECOND_RESTART;
 opt.min_objective = @(x)CostFunc(x,segpoly); %匿名函数可以使用额外参数
 opt.lower_bounds = lowb;
@@ -517,11 +518,41 @@ nintlength = ones(segpoly.coeffl,1); % 这个变量好像没啥用呀？
 % h 是等式约束
 % opt.h = {@(x) equialConstrain(x,segpoly)}; %匿名函数可以使用额外参数
 % opt.h_tol = 1e-8;
-
-
 opt.xtol_rel = (1e-4);
+
+
 tNLoptStart = tic;
 [coeffs, fmin, retcode] = nlopt_optimize(opt, x0);
+fprintf("############################# OPT Result #############################\n");
+fprintf("NLopt Solver retcode = : %d \n",retcode);
+
+%%%% retcode 的状态码
+switch(retcode)
+case 1
+    fprintf('NLOPT_SUCCESS: Generic success return value \n');
+case 2
+    fprintf('NLOPT_STOPVAL_REACHED: Optimization stopped because stopval (above) was reached \n');
+case 3
+    fprintf('NLOPT_FTOL_REACHED: Optimization stopped because ftol_rel or ftol_abs (above) was reached \n');
+case 4
+    fprintf('NLOPT_XTOL_REACHED: Optimization stopped because xtol_rel or xtol_abs (above) was reached \n');
+case 5
+    fprintf('NLOPT_MAXEVAL_REACHED: Optimization stopped because maxeval (above) was reached \n');
+case 6
+    fprintf('NLOPT_MAXTIME_REACHED: Optimization stopped because maxtime (above) was reached \n');
+case -1
+    fprintf('NLOPT_FAILURE: Generic failure code \n');
+case -2
+    fprintf('NLOPT_INVALID_ARGS: Invalid arguments (e.g. lower bounds are bigger than upper bounds, an unknown algorithm was specified, etcetera) \n');
+case -3
+    fprintf('NLOPT_OUT_OF_MEMORY: Ran out of memory \n');
+case -4
+    fprintf('NLOPT_ROUNDOFF_LIMITED: Halted because roundoff errors limited progress. (In this case, the optimization still typically returns a useful result.) \n');
+case -5
+    fprintf('NLOPT_FORCED_STOP: Halted because of a forced termination: the user called nlopt_force_stop(opt) on the optimization’s nlopt_opt object opt from the user’s objective function or constraints \n');
+
+end
+fprintf("############################# OPT Result #############################\n");
 tNonlinearEnd = toc(tNLoptStart);
 end
 
