@@ -18,7 +18,10 @@
 % 4):[x] 编写Constrain/Cost验证函数
 % 5): 编写 NLopt 优化求解相关函数文件 不等式约束怎么添加
 % 6):[x] 与前面 LazyKinoPRM 的工作拼接 实现完整的工作流程
-% 7): OvalConstrain 的效果验证
+% 7):[ ] OvalConstrain 的效果验证 画出图来
+% 8):[ ] smoCost的不同阶次尝试 为啥非得minisnap? minijerk|miniacc
+% 都得试试,感觉这个问题比较影响acc的超限问题
+% 9):[ ] Cost的权重问题
 % SPEED UP：哪些点可以加速优化求解
 % 1): 
 % 2): 
@@ -35,10 +38,11 @@ addpath("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\TrajGener\")
 clear;clc;
 
 SAVE_ALL = false;
+OSQP_ALL_INIT = false;
 
 % map 加载地图与 LazyKinoPRM 中加载地图保持一致
-map = imread('F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\map\map10.png');
-load("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\pathnode.mat");
+map = imread('F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\map\map5.png');
+load("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\path.mat");
 RATION = 100;
 path(:,1)=path(:,1)/RATION;
 path(:,2)=path(:,2)/RATION;
@@ -74,7 +78,7 @@ wa_max = W_factor*1.5;
 % Vel_factor = 1.8; % reference Linear Velocity  2m/s
 % W_factor   = 1.8; % reference Angular Velocity rad/s
 % 二次优化 dynamic limit
-QPdynamiclimit = true;
+QPdynamiclimit = false;
 % #########################################################################
 dist= zeros(n_seg, 1);
 ts  = ones(n_seg, 1)*0.8;
@@ -117,7 +121,7 @@ path_deg_m=rad2deg(path_m);
 path(:,3)=path_m;
 %%%%%%%%
 n_order       = 7;          % 多项式的阶数 自由度为 n_order+1
-n_costorder   = 4;          % 最小化的求导阶次 0=posi;1=vel;2=acc;3=jerk;4=snap;
+n_costorder   = 3;          % 最小化的求导阶次 0=posi;1=vel;2=acc;3=jerk;4=snap;
 n_inputorder  = 4;          % 输入的阶次 可以理解为segment 之间满足等式约束的阶次
 
 % Quadratic Optimization Structure
@@ -125,6 +129,7 @@ OP_structure.QP_inequality = QPdynamiclimit;
 % Time Clock ###########
 tQPStart = tic;
 
+%%%%%%%%%%%%%% 分离计算QP
 OP_structure.v_max = pv_max;
 OP_structure.a_max = pa_max;
 poly_coef_x = MinimumPolySolver(path(:, 1), ts, n_seg, n_order, n_costorder, n_inputorder,OP_structure);
@@ -134,6 +139,16 @@ poly_coef_y = MinimumPolySolver(path(:, 2), ts, n_seg, n_order, n_costorder, n_i
 OP_structure.v_max = wv_max;
 OP_structure.a_max = wa_max;
 poly_coef_q = MinimumPolySolver(path(:, 3), ts, n_seg, n_order, n_costorder, n_inputorder,OP_structure);
+%%%%%%%%%%%%%% 一起计算QP
+MatQ = [];
+ER = eye(n_order+1)*0.8;
+Q = getQ(n_seg, n_order, n_costorder, ts);
+for idx=0:n_seg-1
+    Q_k = Q(idx*(n_order+1)+1:(idx+1)*(n_order+1),idx*(n_order+1)+1:(idx+1)*(n_order+1));
+    Q_k3 = blkdiag(Q_k,Q_k,Q_k*ER);
+    MatQ = blkdiag(MatQ,Q_k3);
+end
+clear Q_k Q_k3 idx
 
 % Time Clock ###########
 tQPEnd = toc(tQPStart);
@@ -221,7 +236,7 @@ end
 QP_k=QP_k-1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%% 选择参考轨迹是 search 还是 QP
-OBVP_PLOT  = true;
+OBVP_PLOT  = false;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % if (OBVP_PLOT)
 %     QPX_n = [];
@@ -341,9 +356,9 @@ segpoly.lambda_smooth = 0.1;        % default 1     0.1
 segpoly.lambda_obstacle =1.0;%0.01;   % default 0.01  1       1
 segpoly.lambda_dynamic = 10;%500;   % default 500   1       10
 segpoly.lambda_time = 8000;%3000;   % default 2000  8000    
-segpoly.lambda_oval = 0;%10;       % default 10
+segpoly.lambda_oval = 10;%10;       % default 10
 % oval cost 和 oval constrain 选择一个起作用即可
-segpoly.switch_ovalcon = false;
+segpoly.switch_ovalcon = true;
 % Nonlinear equality Constrain
 segpoly.switch_equacon = false;
 % Using Equality Constrain Reduce Optimization DOF 
@@ -382,6 +397,20 @@ segpoly.Map  = [];
 
 % 时间最优选项
 segpoly.TimeOptimal = TimeOptimal;
+
+if (OSQP_ALL_INIT)
+%%%% 整体问题的QP求解
+f = zeros(size(MatQ,1),1);
+options = optimoptions('quadprog','MaxIterations',6000);
+%%%% QP 求解多项式系数
+fprintf("=============================poly_coef===================================\n");
+poly_coef = quadprog(MatQ,f,[],[],Aeq, beq,[],[],[],options);
+for i = 0:n_seg-1
+    poly_coef_x_seg(1+n_order*i:n_order*(i+1)) = poly_coef(1+n_order*(i*n_dim):n_order*(i*n_dim+1));
+    poly_coef_y_seg(1+n_order*i:n_order*(i+1)) = poly_coef(1+n_order*(i*n_dim+1):n_order*(i*n_dim+2));
+    poly_coef_q_seg(1+n_order*i:n_order*(i+1)) = poly_coef(1+n_order*(i*n_dim+2):n_order*(i*n_dim+3));
+end
+end
 
 %#########################################################################%
 % sdf 地图信息
@@ -727,8 +756,8 @@ t_temp=0;
 for idx=1:length(ts)
     t_temp = t_temp + ts(idx);
     qdn_idx = ceil(t_temp/tstep);
-    %scatter(t_temp+Tv0,X_dn(qdn_idx),'*r');
-    %scatter(t_temp+Tv0,Y_dn(qdn_idx),'*b');
+    scatter(t_temp+Tv0,X_dn(qdn_idx),'*r');
+    scatter(t_temp+Tv0,Y_dn(qdn_idx),'*b');
 end
 %##############################################
 if (QP_PLOT)
@@ -736,8 +765,8 @@ if (QP_PLOT)
     for idx=1:length(QP_ts)
         t_temp = t_temp + QP_ts(idx);
         qdn_idx = ceil(t_temp/tstep);
-        %scatter(t_temp,QPX_dn(qdn_idx),'xr');
-        %scatter(t_temp,QPY_dn(qdn_idx),'xb');
+        scatter(t_temp,QPX_dn(qdn_idx),'xr');
+        scatter(t_temp,QPY_dn(qdn_idx),'xb');
     end
 end
 % legend('x vel','y vel');
@@ -776,20 +805,20 @@ if(QP_PLOT)
     pt_qser = plot(tv,QPQ_dn, 'b--');
 end
 t_temp = 0;
-%scatter(t_temp+Tv0,Q_dn(1),'*r');
+scatter(t_temp+Tv0,Q_dn(1),'*r');
 for idx=1:length(ts)
     t_temp = t_temp + ts(idx);
     qdn_idx = ceil(t_temp/tstep);
-    %scatter(t_temp+Tv0,Q_dn(qdn_idx),'*r');
+    scatter(t_temp+Tv0,Q_dn(qdn_idx),'*r');
 end
 %##############################################
 if(QP_PLOT)
     t_temp=0;
-    %scatter(t_temp,QPQ_dn(1),'*r');
+    scatter(t_temp,QPQ_dn(1),'xr');
     for idx=1:length(QP_ts)
         t_temp = t_temp + QP_ts(idx);
         qdn_idx = ceil(t_temp/tstep);
-        %scatter(t_temp,QPQ_dn(qdn_idx),'xr');
+        scatter(t_temp,QPQ_dn(qdn_idx),'xr');
     end
 end
 grid on
@@ -827,10 +856,10 @@ if(QP_PLOT)
 end
 t_temp = 0;
 path_m = path(:,3);
-%scatter(t_temp+Tv0,rad2deg(path_m(1)),'*r');
+scatter(t_temp+Tv0,rad2deg(path_m(1)),'*r');
 for idx=1:length(ts)
     t_temp = t_temp + ts(idx);
-    %scatter(t_temp+Tv0,rad2deg(path_m(idx+1)),'*r');
+    scatter(t_temp+Tv0,rad2deg(path_m(idx+1)),'*r');
 end
 grid on
 legend([pt_qopt,pt_qser],'optimal','search','FontSize',12);
@@ -863,8 +892,8 @@ t_temp=0;
 for idx=1:length(ts)
     t_temp = t_temp + ts(idx);
     qdn_idx = ceil(t_temp/tstep);
-    %scatter(t_temp+Tv0,X_ddn(qdn_idx),'*r');
-    %scatter(t_temp+Tv0,Y_ddn(qdn_idx),'*b');
+    scatter(t_temp+Tv0,X_ddn(qdn_idx),'*r');
+    scatter(t_temp+Tv0,Y_ddn(qdn_idx),'*b');
 end
 %##############################################
 if (QP_PLOT)
@@ -872,8 +901,8 @@ if (QP_PLOT)
     for idx=1:length(QP_ts)
         t_temp = t_temp + QP_ts(idx);
         qdn_idx = ceil(t_temp/tstep);
-        %scatter(t_temp,QPX_ddn(qdn_idx),'xr');
-        %scatter(t_temp,QPY_ddn(qdn_idx),'xb');
+        scatter(t_temp,QPX_ddn(qdn_idx),'xr');
+        scatter(t_temp,QPY_ddn(qdn_idx),'xb');
     end
 end
 % legend('x acc','y acc');
@@ -909,20 +938,20 @@ if (QP_PLOT)
     pt_qser = plot(tv,QPQ_ddn, 'b--');
 end
 t_temp = 0;
-%scatter(t_temp+Tv0,Q_ddn(1),'*r');
+scatter(t_temp+Tv0,Q_ddn(1),'*r');
 for idx=1:length(ts)
     t_temp = t_temp + ts(idx);
     qdn_idx = ceil(t_temp/tstep);
-    %scatter(t_temp+Tv0,Q_ddn(qdn_idx),'*r');
+    scatter(t_temp+Tv0,Q_ddn(qdn_idx),'*r');
 end
 %##############################################
 if (QP_PLOT)
     t_temp=0;
-    %scatter(t_temp,Q_ddn(1),'*r');
+    scatter(t_temp,Q_ddn(1),'xr');
     for idx=1:length(QP_ts)
         t_temp = t_temp + QP_ts(idx);
         qdn_idx = ceil(t_temp/tstep);
-        %scatter(t_temp,QPQ_ddn(qdn_idx),'xr');
+        scatter(t_temp,QPQ_ddn(qdn_idx),'xr');
     end
 end
 grid on

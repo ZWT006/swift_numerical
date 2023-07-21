@@ -21,9 +21,11 @@ BEZIER_POLY = 1;
 NORMAL_POLY = 2;
 POLY_TYPE = NORMAL_POLY;
 
-for i=1:10
-    path(end,:)=[];
-end
+OP_structure.QP_inequality = false;
+
+% for i=1:10
+%     path(end,:)=[];
+% end
 
 % path(2,:)=[];
 
@@ -64,12 +66,12 @@ n_poly_perseg = (n_order+1);    % 每段的系数个数
 %%%%%%%%
 %Step2: 根据距离长度计算每两个点之间的时间分配
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Vel_factor = 2; % reference Linear Velocity  2m/s
-W_factor   = 1; % reference Angular Velocity rad/s
+Vel_factor = 1.4; % reference Linear Velocity  2m/s
+W_factor   = 1.4; % reference Angular Velocity rad/s
 pv_max = Vel_factor*1.5;
-pa_max = Vel_factor*8;
+pa_max = Vel_factor*1.5;
 wv_max = W_factor*1.5;
-wa_max = W_factor*8;
+wa_max = W_factor*1.5;
 dist= zeros(n_seg, 1);
 ts  = ones(n_seg, 1)*0.8;
 
@@ -130,9 +132,18 @@ switch POLY_TYPE
         end
 
     case NORMAL_POLY
-        poly_coef_x = MinimumPolySolver(path(:, 1), ts, n_seg, n_order, n_costorder, n_inputorder);
-        poly_coef_y = MinimumPolySolver(path(:, 2), ts, n_seg, n_order, n_costorder, n_inputorder);
-        poly_coef_q = MinimumPolySolver(path(:, 3), ts, n_seg, n_order, n_costorder, n_inputorder);
+        OP_structure.v_max = pv_max;
+        OP_structure.a_max = pa_max;
+        poly_coef_x = MinimumPolySolver(path(:, 1), ts, n_seg, n_order, n_costorder, n_inputorder,OP_structure);
+%         poly_coef_x = MinimumPolySolver(path(:, 1), ts, n_seg, n_order, n_costorder, n_inputorder);
+        OP_structure.v_max = pv_max;
+        OP_structure.a_max = pa_max;
+        poly_coef_y = MinimumPolySolver(path(:, 2), ts, n_seg, n_order, n_costorder, n_inputorder,OP_structure);
+%         poly_coef_y = MinimumPolySolver(path(:, 2), ts, n_seg, n_order, n_costorder, n_inputorder);
+        OP_structure.v_max = wv_max;
+        OP_structure.a_max = wa_max;
+        poly_coef_q = MinimumPolySolver(path(:, 3), ts, n_seg, n_order, n_costorder, n_inputorder,OP_structure);
+%         poly_coef_q = MinimumPolySolver(path(:, 3), ts, n_seg, n_order, n_costorder, n_inputorder);
 end
 datename = strcat(num2str(n_costorder),"-cost-",num2str(n_inputorder),"-input");
 % filenema = strcat("opt_coeff_",num2str(n_costorder),"_cost_",num2str(n_inputorder),"_input");
@@ -320,7 +331,7 @@ grid on
 
 hold off
 axis equal
-xlim([0 3000]);
+xlim([0 1200]);
 ylim([0 800]);
 set(gcf,'Position', [100, 100, 1300, 700]);
 
@@ -480,7 +491,13 @@ set(gcf,'Position', [100, 100, 1300, 700]);
 %StepN: Minisnap求解器
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function poly_coef = MinimumPolySolver(waypoints, ts, n_seg, n_order,n_costorder,n_inputorder)
+function poly_coef = MinimumPolySolver(waypoints, ts, n_seg, n_order,n_costorder,n_inputorder,OP_structure)
+    if (nargin == 7)
+        QP_inequality = OP_structure.QP_inequality;
+    else
+        QP_inequality = false;
+    end
+    
     % 起点约束
     start_cond = zeros(1,n_inputorder);
     start_cond(1) = waypoints(1);
@@ -495,9 +512,21 @@ function poly_coef = MinimumPolySolver(waypoints, ts, n_seg, n_order,n_costorder
     % STEP 2: 计算对应的约束矩阵A_beq
     [Aeq, beq] = getAbeq(n_seg, n_order, n_inputorder, waypoints, ts, start_cond, end_cond);
     
+    if (nargin == 7)
+        [Aieq, bieq] = getAbieq(n_seg, n_order, n_inputorder, waypoints, ts, start_cond, end_cond,OP_structure);
+    end
+
     f = zeros(size(Q,1),1);
+    options = optimoptions('quadprog','MaxIterations',6000,'Display','iter');
     % 求解多项式系数
-    poly_coef = quadprog(Q,f,[],[],Aeq, beq);
+    if (QP_inequality)
+%         poly_coef = quadprog(Q,f,Aieq,bieq,Aeq, beq,[],[],[],options);
+        poly_coef = quadprog(Q,f,Aieq,bieq,Aeq, beq,[],[],[]);
+    else
+%         poly_coef = quadprog(Q,f,[],[],Aeq, beq,[],[],[],options);
+        poly_coef = quadprog(Q,f,[],[],Aeq, beq,[],[],[]);
+    end
+%     poly_coef = quadprog(Q,f,[],[],Aeq, beq);
 end
 
 function poly_coef = MinimumBesierSolver(waypoints, ts, n_seg, n_order,n_costorder,n_inputorder, v_max, a_max)

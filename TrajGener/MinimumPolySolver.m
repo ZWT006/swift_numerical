@@ -22,6 +22,6 @@ function poly_coef = MinimumPolySolver(waypoints, ts, n_seg, n_order,n_costorder
     if (QP_inequality)
         poly_coef = quadprog(Q,f,Aieq,bieq,Aeq, beq,[],[],[],options);
     else
-        poly_coef = quadprog(Q,f,[],[],Aeq, beq,options);
+        poly_coef = quadprog(Q,f,[],[],Aeq, beq,[],[],[],options);
     end
 end

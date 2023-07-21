@@ -1,12 +1,12 @@
 %%%% 加载 waypoints
 close all; clear; clc;
-load("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\pathnode.mat");
+load("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\path.mat");
 % for AngleDelta() function
 addpath("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\LazyPRM\");
 % for QP solver
 addpath("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\TrajGener\");
 
-SAVE_CSV = true;
+SAVE_CSV = false;
 
 %%%% 计算每段的时间
 RATION = 100;
@@ -101,20 +101,20 @@ clear Q_k Q_k3 idx
 clc %%%%% 清屏
 %%%%%%%%%%%%%%
 
-EigenQ = readmatrix("E:\datas\Swift\MatQ.csv");
-EigenAeq = readmatrix("E:\datas\Swift\MatAeq.csv");
-Eigenbeq = readmatrix("E:\datas\Swift\Vecbeq.csv");
-%%%% eig 函数求解矩阵特征值
-Qeig = eig(Q);
-MatQeig = eig(MatQ);
-EigenQeig = eig(EigenQ);
-SPDEigenQ = nearestSPD(EigenQ);
-SPDEigenQeig = eig(SPDEigenQ);
-
-fprintf("Q minimual eigs : %f \n",min(Qeig));
-fprintf("MatQ minimual eigs : %f \n",min(MatQeig));
-fprintf("EigenQ minimual eigs : %f \n",min(EigenQeig));
-fprintf("SPDEigenQ minimual eigs : %f \n",min(SPDEigenQeig));
+% EigenQ = readmatrix("E:\datas\Swift\MatQ.csv");
+% EigenAeq = readmatrix("E:\datas\Swift\MatAeq.csv");
+% Eigenbeq = readmatrix("E:\datas\Swift\Vecbeq.csv");
+% %%%% eig 函数求解矩阵特征值
+% Qeig = eig(Q);
+% MatQeig = eig(MatQ);
+% EigenQeig = eig(EigenQ);
+% SPDEigenQ = nearestSPD(EigenQ);
+% SPDEigenQeig = eig(SPDEigenQ);
+% 
+% fprintf("Q minimual eigs : %f \n",min(Qeig));
+% fprintf("MatQ minimual eigs : %f \n",min(MatQeig));
+% fprintf("EigenQ minimual eigs : %f \n",min(EigenQeig));
+% fprintf("SPDEigenQ minimual eigs : %f \n",min(SPDEigenQeig));
 
 
 n_order = 8; % 7阶多项式
@@ -130,8 +130,10 @@ for i = 0:n_seg-1
     QPcoeffs(1+n_order*(i*n_dim+2):n_order*(i*n_dim+3)) =  poly_coef_q(1+n_order*i:n_order*(i+1));
 end
 
+
+
 %%%% EDF map and polynomial trajectory
-map = imread('F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\map\map10.png');
+map = imread('F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\map\map5.png');
 sdfmap = sdfMap(map);
 %%%% segpoly
 bound_rate = 0.8;
@@ -186,19 +188,19 @@ segpoly.Map  = [];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%% EquMatVec 对比
-EquMatVec = readmatrix("E:\datas\Swift\EquMatVec.csv");
-
-Equbeq = EquMatVec(:,end);
-EquMatVec(:,end) = [];
-EquAeq = EquMatVec;
-
-Equbeqbias = Equbeq - beq;
-fprintf("Equbeq quadratic bias : %f \n",sum(Equbeqbias.^2));
-fprintf("Equbeq max bias : %f \n",max(Equbeqbias));
-
-EquAeqbias = EquAeq - Aeq;
-fprintf("Equbeq quadratic bias : %f \n",sum(sum(EquAeqbias.^2)));
-fprintf("Equbeq max bias : %f \n",max(max(abs(EquAeqbias))));
+% EquMatVec = readmatrix("E:\datas\Swift\EquMatVec.csv");
+% 
+% Equbeq = EquMatVec(:,end);
+% EquMatVec(:,end) = [];
+% EquAeq = EquMatVec;
+% 
+% Equbeqbias = Equbeq - beq;
+% fprintf("Equbeq quadratic bias : %f \n",sum(Equbeqbias.^2));
+% fprintf("Equbeq max bias : %f \n",max(Equbeqbias));
+% 
+% EquAeqbias = EquAeq - Aeq;
+% fprintf("Equbeq quadratic bias : %f \n",sum(sum(EquAeqbias.^2)));
+% fprintf("Equbeq max bias : %f \n",max(max(abs(EquAeqbias))));
 
 
 % 时间最优选项
@@ -214,9 +216,11 @@ options = optimoptions('quadprog','MaxIterations',6000);
 %%%% QP 求解多项式系数
 fprintf("=============================poly_coef===================================\n");
 poly_coef = quadprog(MatQ,f,[],[],Aeq, beq,[],[],[],options);
-fprintf("=============================Eigen_poly_coef===================================\n");
-Eigen_poly_coef = quadprog(EigenQ,f,[],[],EigenAeq, Eigenbeq,[],[],[],options);
-fprintf("=============================SPD_poly_coef===================================\n");
+
+% fprintf("=============================Eigen_poly_coef===================================\n");
+% Eigen_poly_coef = quadprog(EigenQ,f,[],[],EigenAeq, Eigenbeq,[],[],[],options);
+
+% fprintf("=============================SPD_poly_coef===================================\n");
 % SPD_poly_coef = quadprog(SPDEigenQ,f,[],[],Aeq, beq,[],[],[],options);
 
 coeffbias = poly_coef - QPcoeffs;
@@ -244,36 +248,36 @@ Re_x = pinv(Re_Aeq)*Re_beq;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%% ReMatVec 对比
-EigenReMatVec = readmatrix("E:\datas\Swift\MatVec.csv");
-
-EigenRebeq = EigenReMatVec(:,end);
-EigenReMatVec(:,end) = [];
-
-EigenRex = EigenReMatVec(:,end);
-EigenReMatVec(:,end) = [];
-
-EigenReAeq = EigenReMatVec;
-
-EigenRebeqbias = EigenRebeq - Re_beq;
-fprintf("EigenRebeq quadratic bias : %f \n",sum(EigenRebeqbias.^2));
-fprintf("EigenRebeq max bias : %f \n",max(abs(EigenRebeqbias)));
-
-EigenRexbias = EigenRex - Re_x;
-fprintf("EigenRex quadratic bias : %f \n",sum(sum(EigenRexbias.^2)));
-fprintf("EigenRex max bias : %f \n",max(max(abs(EigenRexbias))));
-
-EigenReAeqbias = EigenReAeq - Re_Aeq;
-fprintf("EigenReAeq quadratic bias : %f \n",sum(sum(EigenReAeqbias.^2)));
-fprintf("EigenReAeq max bias : %f \n",max(max(abs(EigenReAeqbias))));
-% spy(EigenReAeqbias)
-
-xbias = Re_Aeq*Re_x - Re_beq;
-fprintf("Re Solve quadratic bias : %f \n",sum(xbias.^2));
-fprintf("Re Solve max bias : %f \n",max(abs(xbias)));
-
-Eigenxbias = EigenReAeq*EigenRex - EigenRebeq;
-fprintf("Eigen Solve quadratic bias : %f \n",sum(Eigenxbias.^2));
-fprintf("Eigen Solve max bias : %f \n",max(abs(Eigenxbias)));
+% EigenReMatVec = readmatrix("E:\datas\Swift\MatVec.csv");
+% 
+% EigenRebeq = EigenReMatVec(:,end);
+% EigenReMatVec(:,end) = [];
+% 
+% EigenRex = EigenReMatVec(:,end);
+% EigenReMatVec(:,end) = [];
+% 
+% EigenReAeq = EigenReMatVec;
+% 
+% EigenRebeqbias = EigenRebeq - Re_beq;
+% fprintf("EigenRebeq quadratic bias : %f \n",sum(EigenRebeqbias.^2));
+% fprintf("EigenRebeq max bias : %f \n",max(abs(EigenRebeqbias)));
+% 
+% EigenRexbias = EigenRex - Re_x;
+% fprintf("EigenRex quadratic bias : %f \n",sum(sum(EigenRexbias.^2)));
+% fprintf("EigenRex max bias : %f \n",max(max(abs(EigenRexbias))));
+% 
+% EigenReAeqbias = EigenReAeq - Re_Aeq;
+% fprintf("EigenReAeq quadratic bias : %f \n",sum(sum(EigenReAeqbias.^2)));
+% fprintf("EigenReAeq max bias : %f \n",max(max(abs(EigenReAeqbias))));
+% % spy(EigenReAeqbias)
+% 
+% xbias = Re_Aeq*Re_x - Re_beq;
+% fprintf("Re Solve quadratic bias : %f \n",sum(xbias.^2));
+% fprintf("Re Solve max bias : %f \n",max(abs(xbias)));
+% 
+% Eigenxbias = EigenReAeq*EigenRex - EigenRebeq;
+% fprintf("Eigen Solve quadratic bias : %f \n",sum(Eigenxbias.^2));
+% fprintf("Eigen Solve max bias : %f \n",max(abs(Eigenxbias)));
 
 
 segpoly.sdf = sdfmap;
@@ -312,7 +316,7 @@ QPcoeffs = [QPcoeffs;log(ts)];
 %%%% 时间序列多次幂
 TimePow = [ts';power(ts,2)';power(ts,3)';power(ts,4)';power(ts,5)';power(ts,6)';power(ts,7)'];
 
-segpoly.SAVE_DATA = true;
+% segpoly.SAVE_DATA = true;
 
 if isfield(segpoly,'SAVE_DATA')
     fprintf("segpoly.SAVE_DATA is defined \n");
