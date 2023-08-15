@@ -10,15 +10,16 @@
 %%%%%%%%
 % Step1: 设置优化问题初始参数
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-clc;clear;close all;
+clc;clear;%close all;
 % 加载waypoints
-load("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\path.mat");
+load("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\pathnode.mat");
 addpath("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\LocalOBVP\")
 RATION = 100;
 path(:,1)=path(:,1)/RATION;
 path(:,2)=path(:,2)/RATION;
 BEZIER_POLY = 1;
 NORMAL_POLY = 2;
+ALL_NORMAL  = 3;
 POLY_TYPE = NORMAL_POLY;
 
 OP_structure.QP_inequality = false;
@@ -144,6 +145,45 @@ switch POLY_TYPE
         OP_structure.a_max = wa_max;
         poly_coef_q = MinimumPolySolver(path(:, 3), ts, n_seg, n_order, n_costorder, n_inputorder,OP_structure);
 %         poly_coef_q = MinimumPolySolver(path(:, 3), ts, n_seg, n_order, n_costorder, n_inputorder);
+    case ALL_NORMAL
+%         MatQ = [];
+%         ER = eye(n_order+1)*0.8;
+%         Q = getQ(n_seg, n_order, n_costorder, ts);
+%         for idx=0:n_seg-1
+%             Q_k = Q(idx*(n_order+1)+1:(idx+1)*(n_order+1),idx*(n_order+1)+1:(idx+1)*(n_order+1));
+%             Q_k3 = blkdiag(Q_k,Q_k,Q_k*ER);
+%             MatQ = blkdiag(MatQ,Q_k3);
+%         end
+%         clear Q_k Q_k3 idx
+%         n_order = 8; % 7阶多项式
+%         n_cost  = 4;
+%         n_input = 4;
+%         n_dim   = 3;
+%         segpoly.norder  = n_order;
+%         segpoly.ncost   = n_cost;
+%         segpoly.seg     = n_seg; %pieceNum
+%         segpoly.Dim     = n_dim; % 优化变量的维度
+%         segpoly.coeffl  = n_seg * n_order * n_dim;
+%         segpoly.dof     = opt_dof;
+%         segpoly.ninput  = n_input; % 输入的阶次 默认与ncost一致 zeros(1,3)
+%         segpoly.start_cond  = start_cond;
+%         segpoly.goal_cond   = goal_cond;
+%         % segpoly.start_cond  = [path(1,:)    ;0;0;0];
+%         % segpoly.goal_cond   = [path(end,:)  ;0;0;0];
+%         segpoly.waypoints   = path;
+%         segpoly.dists   = dist;
+%         segpoly.T   = ts; %Time Vector
+%         segpoly.R   = 0.8; % theta的权重系数
+%         f = zeros(size(MatQ,1),1);
+%         options = optimoptions('quadprog','MaxIterations',6000);
+%         %%%% QP 求解多项式系数
+%         fprintf("=============================poly_coef===================================\n");
+%         poly_coef = quadprog(MatQ,f,[],[],Aeq, beq,[],[],[],options);
+%         for i = 0:n_seg-1
+%             poly_coef_x_seg(1+n_order*i:n_order*(i+1)) = poly_coef(1+n_order*(i*n_dim):n_order*(i*n_dim+1));
+%             poly_coef_y_seg(1+n_order*i:n_order*(i+1)) = poly_coef(1+n_order*(i*n_dim+1):n_order*(i*n_dim+2));
+%             poly_coef_q_seg(1+n_order*i:n_order*(i+1)) = poly_coef(1+n_order*(i*n_dim+2):n_order*(i*n_dim+3));
+%         end
 end
 datename = strcat(num2str(n_costorder),"-cost-",num2str(n_inputorder),"-input");
 % filenema = strcat("opt_coeff_",num2str(n_costorder),"_cost_",num2str(n_inputorder),"_input");

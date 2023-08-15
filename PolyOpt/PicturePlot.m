@@ -6,7 +6,7 @@
 %Problem: 
 %***************************************
 %%%%%%%%%%%%% xy popsition
-load("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\Alldata.mat")
+% load("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\Alldata.mat")
 close all
 fpnum = 9;
 FoitSizeNum = 28;
@@ -125,6 +125,7 @@ hold off
 txt = ylabel('$p_{\theta}$[deg]');
 set(txt, 'Interpreter', 'latex');
 ylim([-200 200]);
+xlim([0 ceil(T)+2]);
 legend([pt_qopt,pt_qser],{'optimal','search'}, 'AutoUpdate', 'off');
 set(gca,'FontName','Times New Roman','FontSize',FoitSizeNum);
 set(gca,'xticklabel',[])

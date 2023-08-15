@@ -57,7 +57,7 @@ angle = @(x1,y1,x2,y2) atan2((y2-y1),(x2-x1));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 加载地图
-mapaddress = "map10.png"; % 有多个可选地图位于/map 文件夹
+mapaddress = "map18.png"; % 有多个可选地图位于/map 文件夹
 img = imread(mapaddress);   %空间地图
 img = rgb2gray(img);   %空间地图转换为灰度图   
 % img = transpose(img); 
@@ -119,16 +119,16 @@ set(gca,'Ydir','normal');
 % p=[50,50;700,700];
 if (mapaddress == "map4.png" || mapaddress == "map5.png" || ...
     mapaddress == "map9.png" || mapaddress == "map10.png")
-%     Point_i=[50,50,deg2rad(45)];
+    Point_i=[130,225,deg2rad(-45)];
 %     Point_i=[200,280,deg2rad(90)];
 %     Point_i=[540,340,deg2rad(45)];
-    Point_i=[200,450,deg2rad(90)];
+%     Point_i=[200,450,deg2rad(90)];
 
 %     Point_f=[935,580,deg2rad(-45)];
 %     Point_f=[942,542,deg2rad(135)];
-%     Point_f=[1153,145,deg2rad(45)];
+    Point_f=[130,580,deg2rad(45)];
 %     Point_f=[200,200,deg2rad(-45)];
-    Point_f=[300,550,deg2rad(0)];
+%     Point_f=[300,550,deg2rad(0)];
 
 %     Point_i=[535,250,deg2rad(45)];
 %     Point_f=[1000,100,deg2rad(-45)];
@@ -159,12 +159,48 @@ elseif (mapaddress == "map7.png" || mapaddress == "map8.png")
     aix_resolution = 1;    %yaw角采样分辨率
     YAW_BIAS = pi;       % yaw角拓展的最大偏差
     DIR_GRID_M = 3;          % 节点拓展的分辨率
+elseif (mapaddress == "map11.png" || mapaddress == "map12.png")
+    Point_i=[1000,1000,deg2rad(45)];
+    Point_f=[300,1500,deg2rad(-45)];
+    xy_grid = 30;          %采样栅格
+    xy_resolution = 20;    %随机采样的xy分辨率
+    aix_resolution = 1;    %yaw角采样分辨率
+    YAW_BIAS = pi;       % yaw角拓展的最大偏差
+    DIR_GRID_M = 3;          % 节点拓展的分辨率
+elseif (mapaddress == "map13.png" || mapaddress == "map14.png" || ...
+        mapaddress == "map15.png" || mapaddress == "map16.png" || ...
+        mapaddress == "map17.png" || mapaddress == "map18.png" || ...
+        mapaddress == "map20.png")
+
+%     Point_i=[130,225,deg2rad(0)];
+%     Point_f=[130,580,deg2rad(180)];
+
+%     Point_i=[130,300,deg2rad(0)];
+%     Point_f=[130,500,deg2rad(180)];
+
+%     Point_i=[130,150,deg2rad(0)];
+%     Point_f=[130,650,deg2rad(180)];
+
+%     Point_i=[150,150,deg2rad(0)];
+%     Point_f=[650,650,deg2rad(90)];
+
+%     Point_i=[400,150,deg2rad(0)];
+%     Point_f=[400,650,deg2rad(180)];
+
+    Point_i=[150,650,deg2rad(0)];
+    Point_f=[1050,150,deg2rad(0)];
+
+    xy_grid = 30;          %采样栅格
+    xy_resolution = 20;    %随机采样的xy分辨率
+    aix_resolution = 1;    %yaw角采样分辨率
+    YAW_BIAS = pi;       % yaw角拓展的最大偏差
+    DIR_GRID_M = 3;          % 节点拓展的分辨率
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % obvp的参数
 Vel_factor = 1.4; % x,y 参考线速度
-W_factor   = 1.4; % q 参考角速度
+W_factor   = 2; % q 参考角速度
 Racc       = 1; % cost = x + y + Racc*q (SampleOBVP计算的代价权重)
 dt         = 0.01;
 RATIO      = 100;   % 图片pixel 与真实距离 m 的比例 100 pixel = 1 m
@@ -398,7 +434,7 @@ while(true)
 %                     distance_cost = xy_cost;
                     goal_cost     = DistanceCost(new_node.pose,Point_f) * heur_factor;
 %                     goal_cost     = DistanceCost(new_node.pose,Point_f)*2;
-                    traj_cost = [traj_cost;xy_cost,theta_cost,xy_cost+theta_cost,distance_cost,goal_cost];
+                    traj_cost = [traj_cost;xy_cost,theta_cost,xy_cost+theta_cost,distance_cost,goal_cost,path_cost];
                     collision_flag = TrajectoryCheck(xt(:,1)*RATIO,yt(:,1)*RATIO,img);
                     %                     collision_flag = CollisionCheck(new_node.pose,parent_node.pose,img);
 %                     plot(xt(:,1)*RATIO,yt(:,1)*RATIO,'r--');
@@ -457,7 +493,7 @@ while(true)
                     end
 %                     distance_cost = xy_cost;
                     goal_cost     = DistanceCost(new_node.pose,Point_f) * heur_factor;
-                    traj_cost = [traj_cost;xy_cost,theta_cost,xy_cost+theta_cost,distance_cost,goal_cost];
+                    traj_cost = [traj_cost;xy_cost,theta_cost,xy_cost+theta_cost,distance_cost,goal_cost,path_cost];
 %                     goal_cost     = DistanceCost(new_node.pose,Point_f)*2;
                     collision_flag = TrajectoryCheck(xt(:,1)*RATIO,yt(:,1)*RATIO,img);
                     if (collision_flag) % 如果没有碰撞就正常插入
@@ -489,7 +525,7 @@ while(true)
                         distance_cost = getSDFcost(sdf_factor,dist_th,parent_node.sdf,new_node.sdf,distance_cost,xy_cost);
                     end
                     goal_cost     = DistanceCost(new_node.pose,Point_f) * heur_factor;
-                    traj_cost = [traj_cost;xy_cost,theta_cost,xy_cost+theta_cost,distance_cost,goal_cost];
+                    traj_cost = [traj_cost;xy_cost,theta_cost,xy_cost+theta_cost,distance_cost,goal_cost,path_cost];
 %                     goal_cost     = DistanceCost(new_node.pose,Point_f)*2;
                     collision_flag = TrajectoryCheck(xt(:,1)*RATIO,yt(:,1)*RATIO,img);
                     if (collision_flag) % 如果没有碰撞就正常插入
@@ -641,14 +677,41 @@ plot([path(:, 1) end_x]', [path(:, 2) end_y]', '-', 'Color', 'k', 'LineWidth', 2
 % for idx=1:path_length
 idx=1;
 path_obvp = [];
+PRMX_n = [];
+PRMY_n = [];
+PRMQ_n = [];
+PRMX_dn = [];
+PRMY_dn = [];
+PRMQ_dn = [];
+PRMX_ddn = [];
+PRMY_ddn = [];
+PRMQ_ddn = [];
 obvptemp = GoalNodeList.node_obvp(path_index(idx));
     [xt,yt,qt] = obvptemp.st();
     figure(fp);
     plot(xt(:,1)*RATIO,yt(:,1)*RATIO,'b-','LineWidth',2);
+    PRMX_n = [xt(:,1);PRMX_n];
+    PRMY_n = [yt(:,1);PRMY_n];
+    PRMQ_n = [qt(:,1);PRMQ_n];
+    PRMX_dn = [xt(:,2);PRMX_dn];
+    PRMY_dn = [yt(:,2);PRMY_dn];
+    PRMQ_dn = [qt(:,2);PRMQ_dn];
+    PRMX_ddn = [xt(:,3);PRMX_ddn];
+    PRMY_ddn = [yt(:,3);PRMY_ddn];
+    PRMQ_ddn = [qt(:,3);PRMQ_ddn];
     path_obvp = [path_obvp;obvptemp];
 for idx=2:path_length-1
     obvptemp = openlist.node_obvp(path_index(idx));
     [xt,yt,qt] = obvptemp.st();
+    PRMX_n = [xt(:,1);PRMX_n];
+    PRMY_n = [yt(:,1);PRMY_n];
+    PRMQ_n = [qt(:,1);PRMQ_n];
+    PRMX_dn = [xt(:,2);PRMX_dn];
+    PRMY_dn = [yt(:,2);PRMY_dn];
+    PRMQ_dn = [qt(:,2);PRMQ_dn];
+    PRMX_ddn = [xt(:,3);PRMX_ddn];
+    PRMY_ddn = [yt(:,3);PRMY_ddn];
+    PRMQ_ddn = [qt(:,3);PRMQ_ddn];
     figure(fp);
     plot(xt(:,1)*RATIO,yt(:,1)*RATIO,'b-','LineWidth',2);
     path_obvp = [path_obvp;obvptemp];
@@ -656,7 +719,9 @@ end
 axis on;
 grid on;
 set(gca,'GridColor',[0.5 0.5 0.5],'GridLineStyle','--','GridAlpha',0.2,'XMinorGrid','off','YMinorGrid','off','XTick',[0:100:800],'YTick',[0:100:800]);
-save('pathnode.mat','path','path_obvp')
+% save('pathnode.mat','path','path_obvp')
+save('pathnode.mat','path','path_obvp','PRMX_n','PRMY_n','PRMQ_n','PRMX_dn',...
+    'PRMY_dn','PRMQ_dn','PRMX_ddn','PRMY_ddn','PRMQ_ddn')
 %% Step6: show the trajectory
 [path_length,~]=size(path);
 
@@ -792,6 +857,13 @@ if(~ESTEND_FLAG)
     save('pose_map.mat','pose_map');
     saveas(gcf,'lazykinoPRM.fig');
 end
+
+% filename = "E:\datas\Swift\Optimization\TRAJ_COST.csv";
+% % traj_cost = [traj_cost;xy_cost,theta_cost,xy_cost+theta_cost,distance_cost,goal_cost,path_cost];
+% TRAJ_DATA = traj_cost;
+% TRAJ_DATA = round(TRAJ_DATA,6);
+% writematrix(TRAJ_DATA,filename);
+
 
 function sdfcost = getSDFcost(sdf_factor,dist_th,parsdf,newsdf,distance_cost,xy_cost)
 parsdf = dist_th - parsdf;

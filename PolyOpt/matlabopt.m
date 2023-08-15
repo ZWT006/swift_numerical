@@ -25,10 +25,8 @@
 % SPEED UP：哪些点可以加速优化求解
 % 1): 
 % 2): 
-% 1): 
-% 2): 
-% 1): 
-% 2):
+
+
 
 %***************************************
 % Segments Polynomial Trajectory Parameters
@@ -41,40 +39,40 @@ SAVE_ALL = false;
 OSQP_ALL_INIT = false;
 
 % map 加载地图与 LazyKinoPRM 中加载地图保持一致
-map = imread('F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\map\map5.png');
-load("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\path.mat");
+map = imread('F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\map\map18.png');
+load("F:\MATLABWorkSpace\MotionPlan\kinodynamicpath\pathnode.mat");
 RATION = 100;
 path(:,1)=path(:,1)/RATION;
 path(:,2)=path(:,2)/RATION;
 
 %##########################################################################
 % 角度平滑性处理,与LazyKinoPRM中作用相同
-% [path_length,~]=size(path);
-% path_m=zeros(path_length,1);
-% for idx = 1:path_length-2
-%     temp_angle=AngleDelta(path(idx+1,3),path(idx+2,3))/2+path(idx+1,3);
-%     if (abs(temp_angle)>pi)
-%         if (temp_angle < -pi)
-%             temp_angle = 2*pi+temp_angle;
-%         else
-%             temp_angle = -2*pi+temp_angle;
-%         end
-%     end
-%     path_m(idx+1)=temp_angle;
-% end
-% path_m(1)=path(1,3);
-% path_m(end)=path(end,3);
-% path(:,3)=path_m;
+[path_length,~]=size(path);
+path_m=zeros(path_length,1);
+for idx = 1:path_length-2
+    temp_angle=AngleDelta(path(idx+1,3),path(idx+2,3))/2+path(idx+1,3);
+    if (abs(temp_angle)>pi)
+        if (temp_angle < -pi)
+            temp_angle = 2*pi+temp_angle;
+        else
+            temp_angle = -2*pi+temp_angle;
+        end
+    end
+    path_m(idx+1)=temp_angle;
+end
+path_m(1)=path(1,3);
+path_m(end)=path(end,3);
+path(:,3)=path_m;
 %##########################################################################
 [n_seg,~]=size(path);
 n_seg = n_seg - 1;
 % reference parameters
 Vel_factor = 1.4; % reference Linear Velocity  2m/s
-W_factor   = 1.4; % reference Angular Velocity rad/s
+W_factor   = 2; % reference Angular Velocity rad/s
 pv_max = Vel_factor*1.5;
-pa_max = Vel_factor*1.5;
+pa_max = Vel_factor*2;
 wv_max = W_factor*1.5;
-wa_max = W_factor*1.5;
+wa_max = W_factor*2;
 % Vel_factor = 1.8; % reference Linear Velocity  2m/s
 % W_factor   = 1.8; % reference Angular Velocity rad/s
 % 二次优化 dynamic limit
@@ -98,10 +96,10 @@ clear t_temp;
 %%%%%%% attention 这两个起始的时间非常影响优化的结果可以根据初末速度来设置一下
 xvi=0;yvi=0;qvi=0;
 ti = ts(1) * max([(Vel_factor-xvi)/Vel_factor,(Vel_factor-yvi)/Vel_factor,(W_factor-qvi)/W_factor]);
-ts(1)   = ts(1) + ti;
+ts(1)   = ts(1) + ti*2;
 xvf=0;yvf=0;qvf=0;
 tf = ts(end) * max([(Vel_factor-xvf)/Vel_factor,(Vel_factor-yvf)/Vel_factor,(W_factor-qvf)/W_factor]);
-ts(end) = ts(end) + tf;
+ts(end) = ts(end) + tf*2;
 T=sum(ts);
 
 %##########################################################################
@@ -329,6 +327,7 @@ n_dim   = 3;
 opt_dof = n_dim*n_seg*n_order - 2*n_input*n_dim - n_input*(n_seg-1)*n_dim - (n_seg-1)*n_dim;
 % 二次优化初始点
 subOptValuesInit = true;
+bound_max = 6000;
 % 时间最优选项
 TimeOptimal = true;
 % 使用 CostFunction提供的梯度
@@ -355,8 +354,10 @@ segpoly.d_th = 0.5; % 距离代价的阈值
 segpoly.lambda_smooth = 0.1;        % default 1     0.1
 segpoly.lambda_obstacle =1.0;%0.01;   % default 0.01  1       1
 segpoly.lambda_dynamic = 10;%500;   % default 500   1       10
-segpoly.lambda_time = 8000;%3000;   % default 2000  8000    
-segpoly.lambda_oval = 10;%10;       % default 10
+segpoly.lambda_velsoftcon = 10;
+segpoly.lambda_accsoftcon = 1;
+segpoly.lambda_time = 1000;%3000;   % default 2000  8000    
+segpoly.lambda_oval = 1;%10;       % default 10
 % oval cost 和 oval constrain 选择一个起作用即可
 segpoly.switch_ovalcon = true;
 % Nonlinear equality Constrain
@@ -444,8 +445,9 @@ if (subOptValuesInit)
 end
 % 将 quadprog 的coeffs放入segpoly
 segpoly.coeffs = x0;
-lowb = ones(segpoly.coeffl,1)*-500;
-upb = ones(segpoly.coeffl,1)*500;
+
+lowb = ones(segpoly.coeffl,1)*-bound_max;
+upb = ones(segpoly.coeffl,1)*bound_max;
 
 % 使用等式约束降维优化问题
 if (ReduceOptimalValue)
@@ -560,13 +562,20 @@ end
 [timCost,timgrad]=timeCost(coeffs,segpoly);
 [ovaCost,ovagrad]=ovalCost(coeffs,segpoly);
 
+[velCost,velgrad]=veldynamicCost(coeffs,segpoly);
+[accCost,accgrad]=accdynamicCost(coeffs,segpoly);
+
 lobsCost = segpoly.lambda_obstacle * obsCost;
 lsmoCost = segpoly.lambda_smooth   * smoCost;
 ldynCost = segpoly.lambda_dynamic  * dynCost;
 ltimCost = segpoly.lambda_time     * timCost;
 lovaCost = segpoly.lambda_oval     * ovaCost;
 
-fprintf("smoCost = %8.4f; obsCost = %8.4f; dynCost = %8.4f; ovaCost = %8.4f; timCost = %8.6f \n",lsmoCost,lobsCost,ldynCost,lovaCost,ltimCost);
+lvelCost = segpoly.lambda_velsoftcon * velCost;
+laccCost = segpoly.lambda_accsoftcon * accCost;
+
+fprintf("smoCost = %8.4f; obsCost = %8.4f; dynCost = %8.4f; velCost = %8.4f; accCost = %8.4f;" + ...
+        " ovaCost = %8.4f; timCost = %8.6f \n",lsmoCost,lobsCost,ldynCost,lvelCost,laccCost,lovaCost,ltimCost);
 
 if (TimeOptimal)
     fprintf("############################# TIME CHECK ################################\n")
@@ -618,12 +627,33 @@ if (segpoly.DEBUG_PLOT)
         hold on
         xlabel("iter");
         ylabel("cost");
+        subplot(7,1,1)
         plot(costArray(:,1),'r-');
+        legend('smoCost');
+        grid on
+        subplot(7,1,2)
         plot(costArray(:,2),'b-');
+        legend('obsCost');
+        grid on
+        subplot(7,1,3)
         plot(costArray(:,3),'g-');
-        plot(costArray(:,4),'y-');
-        plot(costArray(:,5),'k-');
-        legend('smoCost','obsCost','dynCost','timCost','ovaCost');
+        legend('dynCost');
+        grid on
+        subplot(7,1,4)
+        plot(costArray(:,4),'g-');
+        legend('velCost');
+        grid on
+        subplot(7,1,5)
+        plot(costArray(:,5),'g-');
+        legend('accCost');
+        grid on
+        subplot(7,1,6)
+        plot(costArray(:,6),'y-');
+        legend('timCost');
+        grid on
+        subplot(7,1,7)
+        plot(costArray(:,7),'k-');
+        legend('ovaCost');
         grid on
     end
 end
@@ -686,11 +716,11 @@ AngUNIT=50;
 [path_length,~] = size(path);
 
 %%&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&%%
-% for idx=1:path_length
-% %     plot([path(idx,1),path(idx,1)+cos(path(idx,3))*AngUNIT],[path(idx,2),path(idx,2)+sin(path(idx,3))*AngUNIT],'-','Color','b','LineWidth',1);
-%     plot([path(idx,1)*RATION,path(idx,1)*RATION+cos(path(idx,3))*AngUNIT],[path(idx,2)*RATION,path(idx,2)*RATION+sin(path(idx,3))*AngUNIT],'-','Color','b','LineWidth',1);
-% %     plot([path(idx,1)*RATION,path(idx,1)*RATION+cos(path_m(idx))*AngUNIT],[path(idx,2)*RATION,path(idx,2)*RATION+sin(path_m(idx))*AngUNIT],'c-','LineWidth',2);
-% end
+for idx=1:path_length
+%     plot([path(idx,1),path(idx,1)+cos(path(idx,3))*AngUNIT],[path(idx,2),path(idx,2)+sin(path(idx,3))*AngUNIT],'-','Color','b','LineWidth',1);
+    plot([path(idx,1)*RATION,path(idx,1)*RATION+cos(path(idx,3))*AngUNIT],[path(idx,2)*RATION,path(idx,2)*RATION+sin(path(idx,3))*AngUNIT],'-','Color','k','LineWidth',1);
+%     plot([path(idx,1)*RATION,path(idx,1)*RATION+cos(path_m(idx))*AngUNIT],[path(idx,2)*RATION,path(idx,2)*RATION+sin(path_m(idx))*AngUNIT],'c-','LineWidth',2);
+end
 % for idx=1:path_length-1
 %     plot([path(idx,1)*RATION,path(idx+1,1)*RATION],[path(idx,2)*RATION,path(idx+1,2)*RATION],'g-','LineWidth',1);
 % end

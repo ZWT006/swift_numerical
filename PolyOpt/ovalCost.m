@@ -44,6 +44,9 @@ gradt = zeros(n_seg,1);
 
 for idi = 1:n_seg
     [pos,vel,acc] = polytraj.getStates(idi);
+%     if (idi == 1)
+%         fprintf("StartState: [%2.4f,%2.4f,%2.4f]\n",pos(1,1),pos(1,2),pos(1,3));
+%     end
     Tdt = polytraj.bardt(idi);
     xgrad = zeros(n_order,1);
     ygrad = zeros(n_order,1);

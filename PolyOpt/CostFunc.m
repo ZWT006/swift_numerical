@@ -12,11 +12,17 @@ DEBUG_PLOT  = segpoly.DEBUG_PLOT;
 [timCost,timgrad]=timeCost(coeffs,segpoly);
 [ovaCost,ovagrad]=ovalCost(coeffs,segpoly);
 
+[velCost,velgrad]=veldynamicCost(coeffs,segpoly);
+[accCost,accgrad]=accdynamicCost(coeffs,segpoly);
+
 lambda_smooth   = segpoly.lambda_smooth;
 lambda_obstacle = segpoly.lambda_obstacle;
 lambda_dynamic  = segpoly.lambda_dynamic;
 lambda_time     = segpoly.lambda_time;
 lambda_oval     = segpoly.lambda_oval;
+
+lambda_velsoftcon = segpoly.lambda_velsoftcon;
+lambda_accsoftcon = segpoly.lambda_accsoftcon;
 
 
 if (DEBUG_PRINT)
@@ -38,6 +44,14 @@ if (DEBUG_PRINT)
 %         grad = lambda_dynamic*dyngrad + grad;
         fprintf("dynCost = %8.6f; ",lambda_dynamic*dynCost);
     end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if(lambda_velsoftcon ~= 0)
+        fprintf("velCost = %8.6f; ",lambda_velsoftcon*velCost);
+    end
+    if(lambda_accsoftcon ~= 0)
+        fprintf("accCost = %8.6f; ",lambda_accsoftcon*accCost);
+    end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if(lambda_oval ~= 0)
 %         [ovaCost,ovagrad]=ovalCost(coeffs,segpoly);
 %         cost = lambda_oval*ovaCost + cost;
@@ -69,7 +83,8 @@ end
 if(DEBUG_PLOT)
 global iter costArray;
 iter = iter + 1;
-costArray = [costArray;[lambda_smooth*smoCost,lambda_obstacle*obsCost,lambda_dynamic*dynCost,lambda_time*timCost,lambda_oval*ovaCost]];
+costArray = [costArray;[lambda_smooth*smoCost,lambda_obstacle*obsCost,lambda_dynamic*dynCost,...
+            lambda_dynamic*velCost,lambda_dynamic*accCost,lambda_time*timCost,lambda_oval*ovaCost]];
 end
 % fprintf("smoCost = %12.6f; obsCost = %12.6f\n",lambda_smooth*smoCost,lambda_obstacle*obsCost);
 % fprintf("smoCost = %8.6f; obsCost = %8.6f; dynCost = %8.6f\n",lambda_smooth*smoCost,lambda_obstacle*obsCost,lambda_dynamic*dynCost);
@@ -80,8 +95,12 @@ end
 % cost = lambda_smooth*smoCost + lambda_time*timCost + lambda_oval*ovaCost;
 % grad = lambda_smooth*smograd + lambda_time*timgrad + lambda_oval*ovagrad;
 
-cost = lambda_smooth*smoCost + lambda_obstacle*obsCost + lambda_dynamic*dynCost + lambda_time*timCost + lambda_oval*ovaCost;
-grad = lambda_smooth*smograd + lambda_obstacle*obsgrad + lambda_dynamic*dyngrad + lambda_time*timgrad + lambda_oval*ovagrad;
+if (segpoly.switch_ovalcon)
+    lambda_oval = 0;
+end
+
+cost =  lambda_smooth*smoCost + lambda_obstacle*obsCost + lambda_velsoftcon*velCost + lambda_accsoftcon*accCost + lambda_time*timCost + lambda_oval*ovaCost;
+grad =  lambda_smooth*smograd + lambda_obstacle*obsgrad + lambda_velsoftcon*velgrad + lambda_accsoftcon*accgrad + lambda_time*timgrad + lambda_oval*ovagrad;
 
 % cost = lambda_smooth*smoCost;
 % grad = lambda_smooth*smograd;
