@@ -2,19 +2,6 @@
 %Author: Wentao Zhang
 %Date: 2023-3-1
 %E-mail: zwt190315@163.com
-%Reference: https://www.cnblogs.com/tiandsp/p/12248779.html
-%Problem: 正常的PRM要求所有节点的有向图，如果有N个节点的有向图，就得构建一个N*N的矩阵
-% 来迭代进行Dijkstar算法来操作这个矩阵，耗时比较长并且随着采样点的增多，时间几何倍提升
-% 还有一个随机采点的问题，造成结果的不确定性。从测试来看，貌似给固定的采样点影响也不大
-% 但是在进行这种操作之前，最好是先把地图给腐蚀膨胀一下，拓展一下obstacle的外径，即使擦边也不会碰撞
-% 从最终的结果来看，prm的最短路径效果是真的很不错的，是真的短。
-% TODO：感觉可以提升或者可以尝试的地方 
-% 1): 随机撒点和规律撒点，有啥区别吗？是不是也可以考虑随机和规律结合的那种？限制在栅格中撒点
-% 2): 采样点Point类中的状态保存,修改的属性和类需要完善,目前存在问题,需要完善
-% 3): 最主要的还是BVP求解轨迹添加进入搜索中
-% 4): OBVP已经添加进入搜索,但是一些细节还没有处理:终止是两端状态都确定应该搞成一个BVP问题求解
-% 5): 添加终点多个备选方案,优化最终结果,造成问题就是存在找不到解的情况,暂时想到的解决方法 Ⅰ)修改参数再搜索(耗时)
-% Ⅱ)增加直连的标志,可以有不是那么好的解决方法
 %***************************************
 
 close all;
@@ -49,7 +36,6 @@ addpath('LocalOBVP\');
 addpath('map\');
 addpath('TrajGener\');
 addpath('PolyOpt\');
-% addpath('TrajOpt\')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % local function difine
@@ -57,10 +43,9 @@ angle = @(x1,y1,x2,y2) atan2((y2-y1),(x2-x1));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 加载地图
-mapaddress = "map10.png"; % 有多个可选地图位于/map 文件夹
+mapaddress = "map5.png"; % 有多个可选地图位于/map 文件夹
 img = imread(mapaddress);   %空间地图
 img = rgb2gray(img);   %空间地图转换为灰度图   
-% img = transpose(img); 
 initsdfmap = sdfMap(img);   % 导入计算 sdf
 if (MAP_ERODE)
     se=strel('disk',erode_range);
@@ -119,16 +104,16 @@ set(gca,'Ydir','normal');
 % p=[50,50;700,700];
 if (mapaddress == "map4.png" || mapaddress == "map5.png" || ...
     mapaddress == "map9.png" || mapaddress == "map10.png")
-%     Point_i=[50,50,deg2rad(45)];
+    Point_i=[50,50,deg2rad(45)];
 %     Point_i=[200,280,deg2rad(90)];
 %     Point_i=[540,340,deg2rad(45)];
-    Point_i=[200,450,deg2rad(90)];
+%     Point_i=[200,450,deg2rad(90)];
 
-%     Point_f=[935,580,deg2rad(-45)];
+    Point_f=[935,580,deg2rad(-45)];
 %     Point_f=[942,542,deg2rad(135)];
 %     Point_f=[1153,145,deg2rad(45)];
 %     Point_f=[200,200,deg2rad(-45)];
-    Point_f=[300,550,deg2rad(0)];
+%     Point_f=[300,550,deg2rad(0)];
 
 %     Point_i=[535,250,deg2rad(45)];
 %     Point_f=[1000,100,deg2rad(-45)];
@@ -656,7 +641,8 @@ end
 axis on;
 grid on;
 set(gca,'GridColor',[0.5 0.5 0.5],'GridLineStyle','--','GridAlpha',0.2,'XMinorGrid','off','YMinorGrid','off','XTick',[0:100:800],'YTick',[0:100:800]);
-save('pathnode.mat','path','path_obvp')
+% save('pathnode.mat','path','path_obvp')
+save('pathnode.mat','path')
 %% Step6: show the trajectory
 [path_length,~]=size(path);
 
